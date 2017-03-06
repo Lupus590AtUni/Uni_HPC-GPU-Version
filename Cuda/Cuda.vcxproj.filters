@@ -1,0 +1,84 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CudaCompile Include="kernel.cu" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="cRenderClass.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="GraphicsTemplate.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="NA_Boid.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="NA_LinkedListNode.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="NA_MathsLib.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="NA_Matrix.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="NA_Queue.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="NA_Return.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="NA_Stack.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="NA_Timer.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="NA_Vector.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="cRenderClass.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="globals.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="NA_Boid.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="NA_LinkedListNode.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="NA_MathsLib.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="NA_Matrix.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="NA_Queue.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="NA_Return.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="NA_Vector.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="NA_Timer.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="NA_Stack.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Header">
+      <UniqueIdentifier>{1dbbbc01-52ad-4381-81ac-7dc75bcc3417}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source">
+      <UniqueIdentifier>{8357039c-af74-40eb-a7a1-c0221be17b13}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

@@ -24,6 +24,7 @@ void NA_Boid::update()
 
 	vector<NA_Boid> shortBoidList;
 	//find nearby boids and only consider them
+	//LOW: May not be able to port to cuda as cuda may not like templated types (std::vector)
 	for (int i = 0; i < BOID_MAX; i++)
 	{
 		/*if (&boidList[i] == this) //don't add self  //TODO: BUG: boids disappear if this is active

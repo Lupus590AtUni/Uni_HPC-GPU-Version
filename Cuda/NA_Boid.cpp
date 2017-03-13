@@ -22,7 +22,7 @@ void NA_Boid::update()
 	extern NA_MathsLib na_maths;
 	extern cRenderClass graphics;
 
-	vector<NA_Boid> shortBoidList;
+	vector<NA_Boid> shortBoidList = boidList; //TODO: remove assignment when shortsightedness works
 	//find nearby boids and only consider them
 	//TODO: LOW: May not be able to port shortsighedness to cuda as cuda may not like templated types (std::vector)
 	//for (int i = 0; i < BOID_MAX; i++)

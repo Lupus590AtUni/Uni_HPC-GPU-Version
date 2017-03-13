@@ -31,8 +31,8 @@ void NA_Boid::update()
 		{
 			continue;
 		}*/
-		//TODO: LOW: May not be able to port shortsighedness to cuda as cuda may not like templated types (std::vector)
-		//if (NA_Vector::twoPointsIntoVector(position, boidList[i].position).length() < BIOD_SIGHT_RANGE)
+		//Cuda may not like std::vector, may have to use fixed array (will have memory waste) 
+		if (NA_Vector::twoPointsIntoVector(position, boidList[i].position).length() < BIOD_SIGHT_RANGE)
 		//{
 			shortBoidList.push_back(boidList[i]);
 		//}

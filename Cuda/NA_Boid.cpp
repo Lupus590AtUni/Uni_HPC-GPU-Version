@@ -24,18 +24,18 @@ void NA_Boid::update()
 
 	vector<NA_Boid> shortBoidList;
 	//find nearby boids and only consider them
-	//LOW: May not be able to port to cuda as cuda may not like templated types (std::vector)
- 	for (int i = 0; i < BOID_MAX; i++)
-	{
-		/*if (&boidList[i] == this) //don't add self  //TODO: BUG: boids disappear if this is active
-		{
-			continue;
-		}*/
-		if (NA_Vector::twoPointsIntoVector(position, boidList[i].position).length() < BIOD_SIGHT_RANGE)
-		{
-			shortBoidList.push_back(boidList[i]);
-		}
-	}
+	//TODO: LOW: May not be able to port shortsighedness to cuda as cuda may not like templated types (std::vector)
+	//for (int i = 0; i < BOID_MAX; i++)
+	//{
+	//	/*if (&boidList[i] == this) //don't add self  //TODO: BUG: boids disappear if this is active
+	//	{
+	//		continue;
+	//	}*/
+	//	if (NA_Vector::twoPointsIntoVector(position, boidList[i].position).length() < BIOD_SIGHT_RANGE)
+	//	{
+	//		shortBoidList.push_back(boidList[i]);
+	//	}
+	//}
 
 	int shortBoidListSize = shortBoidList.size();
 	//alignment - align self to average heading

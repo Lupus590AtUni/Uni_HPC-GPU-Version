@@ -113,46 +113,51 @@ void update()
 //////////////////////////////////////////////////////////////////////////////////////////
 // _tmain() - program entry point
 //////////////////////////////////////////////////////////////////////////////////////////
+//int _tmain(int argc, _TCHAR* argv[])
+//{	
+//	// init glut stuff..
+//	graphics.create(argc, argv);
+//
+//	// good place for one-off initialisations and objects creation..
+//
+//	//make all boids
+//	na_maths.seedDice();
+//	for (int i = 0; i < BOID_MAX; i++)
+//	{
+//		NA_Boid temp;
+//		temp.position.x = na_maths.dice(SCREEN_WIDTH);
+//		temp.position.y = na_maths.dice(SCREEN_HEIGHT);
+//
+//		//temp.position.x = 100.0f;
+//		//temp.position.y = 100.0f;
+//
+//		temp.currentVelocity.x = float(na_maths.dice(-100,100))/100.0f;
+//		temp.currentVelocity.y = float(na_maths.dice(-100, 100))/100.0f;
+//
+//		boidList.push_back(temp);
+//
+//		//cout << "POS: X: " << temp.position.x << " Y: " << temp.position.y << "\n";
+//		//cout << "VEL: X: " << temp.currentVelocity.x << " Y: " << temp.currentVelocity.y << "\n";
+//
+//		//NA_Vector t = temp.currentVelocity;
+//		//t.normalise();
+//		//cout << "NV: X: " << t.x << " Y: " << t.y << "\n\n";
+//
+//
+//	}
+//
+//
+//	// enter game loop..
+//	graphics.loop();	
+//
+//	return 0;
+//}
+
+
 int _tmain(int argc, _TCHAR* argv[])
-{	
-	// init glut stuff..
-	graphics.create(argc, argv);
+{
 
-	// good place for one-off initialisations and objects creation..
-
-	//make all boids
-	na_maths.seedDice();
-	for (int i = 0; i < BOID_MAX; i++)
-	{
-		NA_Boid temp;
-		temp.position.x = na_maths.dice(SCREEN_WIDTH);
-		temp.position.y = na_maths.dice(SCREEN_HEIGHT);
-
-		//temp.position.x = 100.0f;
-		//temp.position.y = 100.0f;
-
-		temp.currentVelocity.x = float(na_maths.dice(-100,100))/100.0f;
-		temp.currentVelocity.y = float(na_maths.dice(-100, 100))/100.0f;
-
-		boidList.push_back(temp);
-
-		//cout << "POS: X: " << temp.position.x << " Y: " << temp.position.y << "\n";
-		//cout << "VEL: X: " << temp.currentVelocity.x << " Y: " << temp.currentVelocity.y << "\n";
-
-		//NA_Vector t = temp.currentVelocity;
-		//t.normalise();
-		//cout << "NV: X: " << t.x << " Y: " << t.y << "\n\n";
-
-
-	}
-
-
-	// enter game loop..
-	graphics.loop();	
 
 	return 0;
 }
-
-
-
 

@@ -22,20 +22,21 @@ void NA_Boid::update()
 	extern NA_MathsLib na_maths;
 	extern cRenderClass graphics;
 
-	vector<NA_Boid> shortBoidList = boidList; //TODO: remove assignment when shortsightedness works
+	vector<NA_Boid> shortBoidList;
 	//find nearby boids and only consider them
-	//TODO: LOW: May not be able to port shortsighedness to cuda as cuda may not like templated types (std::vector)
-	//for (int i = 0; i < BOID_MAX; i++)
-	//{
-	//	/*if (&boidList[i] == this) //don't add self  //TODO: BUG: boids disappear if this is active
-	//	{
-	//		continue;
-	//	}*/
-	//	if (NA_Vector::twoPointsIntoVector(position, boidList[i].position).length() < BIOD_SIGHT_RANGE)
-	//	{
-	//		shortBoidList.push_back(boidList[i]);
-	//	}
-	//}
+	
+	for (int i = 0; i < BOID_MAX; i++)
+	{
+		/*if (&boidList[i] == this) //don't add self  //TODO: BUG: boids disappear if this is active
+		{
+			continue;
+		}*/
+		//TODO: LOW: May not be able to port shortsighedness to cuda as cuda may not like templated types (std::vector)
+		//if (NA_Vector::twoPointsIntoVector(position, boidList[i].position).length() < BIOD_SIGHT_RANGE)
+		//{
+			shortBoidList.push_back(boidList[i]);
+		//}
+	}
 
 	int shortBoidListSize = shortBoidList.size();
 	//alignment - align self to average heading

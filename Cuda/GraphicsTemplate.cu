@@ -110,9 +110,9 @@ void update()
 
 
 
-//////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////
 // _tmain() - program entry point
-//////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////
 //int _tmain(int argc, _TCHAR* argv[])
 //{	
 //	// init glut stuff..
@@ -154,9 +154,50 @@ void update()
 //}
 
 
+//KISS - Keep It Simple Stupid cuda implementation
+__global__ void cudaBoidUpdate()
+{
+	//TODO: offset copy
+
+	//starting at own boid, copy data into own memory
+	int i = (int) threadIdx;
+	for (int j = 0; j < BOID_MAX; j++)
+	{
+		
+		//TODO: actual copy
+
+
+		i++; //next boid
+		if (i == BOID_MAX) //wrap arround when walking off memeory
+			i = 0;
+	}
+
+	//TODO: find which boids are in range (perhaps should do this before copy as only would need to look at position
+
+	//TODO: alightment
+
+	//TODO: cohesion
+
+	//TODO: seperation
+}
+
+__global__ void cudaBoidPostUpdate()
+{
+	//TODO: enforce speed/rotation limits
+
+
+	//TODO: screen wrap
+
+
+	//TODO: update global data
+
+
+	//TODO: draw
+}
+
 int _tmain(int argc, _TCHAR* argv[])
 {
-
+	//TODO: set up cuda
 
 	return 0;
 }

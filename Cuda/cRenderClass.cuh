@@ -2,7 +2,7 @@
 #include <iostream>
 #include <tchar.h>
 #include "GL/glut.h"
-#include "NA_Vector.h"
+#include "NA_Vector.cuh"
 
 struct sRGB
 {

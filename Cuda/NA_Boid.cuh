@@ -1,6 +1,6 @@
 #pragma once
 
-#include "NA_Vector.h"
+#include "NA_Vector.cuh"
 
 class NA_Boid
 {

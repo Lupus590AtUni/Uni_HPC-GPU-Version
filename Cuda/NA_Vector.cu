@@ -1,6 +1,6 @@
 //adapted from 1st year maths assignment (lecturer: Gordan Dickers)
 
-#include "NA_Vector.h"
+#include "NA_Vector.cuh"
 
 #include <math.h> //for sqrt in normalise - should redo to use custom math lib which has a lookup table for this
 	//construct

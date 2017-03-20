@@ -1,5 +1,5 @@
 #pragma once
-#include "NA_LinkedListNode.h"
+#include "NA_LinkedListNode.cuh"
 template <class _template>class NA_Stack 
 {
 public:

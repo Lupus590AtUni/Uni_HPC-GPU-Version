@@ -1,14 +1,14 @@
 #include <iostream>
 using std::cout;
-#include "globals.h"
-#include "cRenderClass.h"
+#include "globals.cuh"
+#include "cRenderClass.cuh"
 
 #include <vector>
 using std::vector;
 
-#include "NA_Boid.h"
-#include "NA_MathsLib.h"
-#include "NA_Matrix.h"
+#include "NA_Boid.cuh"
+#include "NA_MathsLib.cuh"
+#include "NA_Matrix.cuh"
 
 
 NA_Boid::NA_Boid()

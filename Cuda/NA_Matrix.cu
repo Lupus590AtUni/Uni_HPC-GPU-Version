@@ -1,6 +1,6 @@
 
-#include "NA_Matrix.h"
-#include "NA_Vector.h"
+#include "NA_Matrix.cuh"
+#include "NA_Vector.cuh"
 
 #include <iostream>
 using std::cout;

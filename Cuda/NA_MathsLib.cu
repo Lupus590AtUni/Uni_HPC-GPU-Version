@@ -1,5 +1,5 @@
 
-#include "NA_MathsLib.h"
+#include "NA_MathsLib.cuh"
 #include <math.h>//used to generate lookup tables when object is constructed
 #include <random>
 #include <time.h>

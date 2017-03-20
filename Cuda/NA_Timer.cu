@@ -1,5 +1,5 @@
 
-#include "NA_Timer.h"
+#include "NA_Timer.cuh"
 #include <time.h>
 
 

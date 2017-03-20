@@ -76,9 +76,11 @@
   <ItemGroup>
     <Filter Include="Header">
       <UniqueIdentifier>{1dbbbc01-52ad-4381-81ac-7dc75bcc3417}</UniqueIdentifier>
+      <Extensions>h;cuh;</Extensions>
     </Filter>
     <Filter Include="Source">
       <UniqueIdentifier>{8357039c-af74-40eb-a7a1-c0221be17b13}</UniqueIdentifier>
+      <Extensions>cpp;cu;</Extensions>
     </Filter>
   </ItemGroup>
 </Project>

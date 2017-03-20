@@ -151,35 +151,33 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <CudaCompile Include="cRenderClass.cu" />
+    <CudaCompile Include="GraphicsTemplate.cu" />
     <CudaCompile Include="kernel.cu">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </CudaCompile>
+    <CudaCompile Include="NA_Boid.cu" />
+    <CudaCompile Include="NA_LinkedListNode.cu" />
+    <CudaCompile Include="NA_MathsLib.cu" />
+    <CudaCompile Include="NA_Matrix.cu" />
+    <CudaCompile Include="NA_Queue.cu" />
+    <CudaCompile Include="NA_Return.cu" />
+    <CudaCompile Include="NA_Stack.cu" />
+    <CudaCompile Include="NA_Timer.cu" />
+    <CudaCompile Include="NA_Vector.cu" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="cRenderClass.h" />
-    <ClInclude Include="globals.h" />
-    <ClInclude Include="NA_Boid.h" />
-    <ClInclude Include="NA_LinkedListNode.h" />
-    <ClInclude Include="NA_MathsLib.h" />
-    <ClInclude Include="NA_Matrix.h" />
-    <ClInclude Include="NA_Queue.h" />
-    <ClInclude Include="NA_Return.h" />
-    <ClInclude Include="NA_Stack.h" />
-    <ClInclude Include="NA_Timer.h" />
-    <ClInclude Include="NA_Vector.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="cRenderClass.cpp" />
-    <ClCompile Include="GraphicsTemplate.cpp" />
-    <ClCompile Include="NA_Boid.cpp" />
-    <ClCompile Include="NA_LinkedListNode.cpp" />
-    <ClCompile Include="NA_MathsLib.cpp" />
-    <ClCompile Include="NA_Matrix.cpp" />
-    <ClCompile Include="NA_Queue.cpp" />
-    <ClCompile Include="NA_Return.cpp" />
-    <ClCompile Include="NA_Stack.cpp" />
-    <ClCompile Include="NA_Timer.cpp" />
-    <ClCompile Include="NA_Vector.cpp" />
+    <ClInclude Include="cRenderClass.cuh" />
+    <ClInclude Include="globals.cuh" />
+    <ClInclude Include="NA_Boid.cuh" />
+    <ClInclude Include="NA_LinkedListNode.cuh" />
+    <ClInclude Include="NA_MathsLib.cuh" />
+    <ClInclude Include="NA_Matrix.cuh" />
+    <ClInclude Include="NA_Queue.cuh" />
+    <ClInclude Include="NA_Return.cuh" />
+    <ClInclude Include="NA_Stack.cuh" />
+    <ClInclude Include="NA_Timer.cuh" />
+    <ClInclude Include="NA_Vector.cuh" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

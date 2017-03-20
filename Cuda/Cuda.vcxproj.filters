@@ -2,76 +2,39 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <CudaCompile Include="kernel.cu" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="cRenderClass.cpp">
+    <CudaCompile Include="cRenderClass.cu">
       <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="GraphicsTemplate.cpp">
+    </CudaCompile>
+    <CudaCompile Include="GraphicsTemplate.cu">
       <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="NA_Boid.cpp">
+    </CudaCompile>
+    <CudaCompile Include="NA_Boid.cu">
       <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="NA_LinkedListNode.cpp">
+    </CudaCompile>
+    <CudaCompile Include="NA_LinkedListNode.cu">
       <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="NA_MathsLib.cpp">
+    </CudaCompile>
+    <CudaCompile Include="NA_MathsLib.cu">
       <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="NA_Matrix.cpp">
+    </CudaCompile>
+    <CudaCompile Include="NA_Matrix.cu">
       <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="NA_Queue.cpp">
+    </CudaCompile>
+    <CudaCompile Include="NA_Queue.cu">
       <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="NA_Return.cpp">
+    </CudaCompile>
+    <CudaCompile Include="NA_Return.cu">
       <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="NA_Stack.cpp">
+    </CudaCompile>
+    <CudaCompile Include="NA_Stack.cu">
       <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="NA_Timer.cpp">
+    </CudaCompile>
+    <CudaCompile Include="NA_Timer.cu">
       <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="NA_Vector.cpp">
+    </CudaCompile>
+    <CudaCompile Include="NA_Vector.cu">
       <Filter>Source</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="cRenderClass.h">
-      <Filter>Header</Filter>
-    </ClInclude>
-    <ClInclude Include="globals.h">
-      <Filter>Header</Filter>
-    </ClInclude>
-    <ClInclude Include="NA_Boid.h">
-      <Filter>Header</Filter>
-    </ClInclude>
-    <ClInclude Include="NA_LinkedListNode.h">
-      <Filter>Header</Filter>
-    </ClInclude>
-    <ClInclude Include="NA_MathsLib.h">
-      <Filter>Header</Filter>
-    </ClInclude>
-    <ClInclude Include="NA_Matrix.h">
-      <Filter>Header</Filter>
-    </ClInclude>
-    <ClInclude Include="NA_Queue.h">
-      <Filter>Header</Filter>
-    </ClInclude>
-    <ClInclude Include="NA_Return.h">
-      <Filter>Header</Filter>
-    </ClInclude>
-    <ClInclude Include="NA_Vector.h">
-      <Filter>Header</Filter>
-    </ClInclude>
-    <ClInclude Include="NA_Timer.h">
-      <Filter>Header</Filter>
-    </ClInclude>
-    <ClInclude Include="NA_Stack.h">
-      <Filter>Header</Filter>
-    </ClInclude>
+    </CudaCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header">
@@ -82,5 +45,40 @@
       <UniqueIdentifier>{8357039c-af74-40eb-a7a1-c0221be17b13}</UniqueIdentifier>
       <Extensions>cpp;cu;</Extensions>
     </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="cRenderClass.cuh">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="globals.cuh">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="NA_Boid.cuh">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="NA_LinkedListNode.cuh">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="NA_MathsLib.cuh">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="NA_Matrix.cuh">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="NA_Queue.cuh">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="NA_Return.cuh">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="NA_Stack.cuh">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="NA_Timer.cuh">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="NA_Vector.cuh">
+      <Filter>Header</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

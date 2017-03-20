@@ -154,13 +154,34 @@ void update()
 //}
 
 
-//KISS - Keep It Simple Stupid cuda implementation
+/////////////////////////////////////////////////////////////////////////
+// CUDA Main
+/////////////////////////////////////////////////////////////////////////
+
+//general notes
+#define CUDA_CALL(x) { const cudaError_t a = (x); if (a != cudaSuccess) {printf("\nCUDA Error: %s (err_num=%d) \n",cudaGetErrorScring(a),a); cudaDeviceReset(); assert(0);}} // Shane Cook - CUDA Programming A Developer's Guide to Parallel Computing with GPUs ISBN:978-0-12-415933-4 P67
+//cudaDeviceSynchronize(); //have the CPU wait for the GPU
+
+//cudaKernal<<<num_blocks, num_threads>>>(args ...); //	running the kernal on the GPU
+
+struct psudoVector2
+{
+	float x;
+	float y;
+};
+
+struct psudoBoid
+{
+	psudoVector2 position;
+	psudoVector2 currentVelocity;
+};
+
 __global__ void cudaBoidUpdate()
 {
 	//TODO: offset copy
 
 	//starting at own boid, copy data into own memory
-	int i = (int) threadIdx;
+	int i = (int) threadIdx.x;
 	for (int j = 0; j < BOID_MAX; j++)
 	{
 		
@@ -174,30 +195,49 @@ __global__ void cudaBoidUpdate()
 
 	//TODO: find which boids are in range (perhaps should do this before copy as only would need to look at position
 
+	psudoVector2 newVelocity;
+
 	//TODO: alightment
 
 	//TODO: cohesion
 
 	//TODO: seperation
-}
 
-__global__ void cudaBoidPostUpdate()
-{
 	//TODO: enforce speed/rotation limits
-
 
 	//TODO: screen wrap
 
+	//TODO: wait for all threads
 
 	//TODO: update global data
 
+	//TODO: cuda/opengl interop render
 
-	//TODO: draw
+	//TODO: wait for all threads (get ready for next round)
+
 }
+
+
 
 int _tmain(int argc, _TCHAR* argv[])
 {
 	//TODO: set up cuda
+
+	//make all boids
+	na_maths.seedDice();
+	psudoBoid boidArray[BOID_MAX];
+	for (int i = 0; i < BOID_MAX; i++)
+	{
+		
+		boidArray[i].position.x = na_maths.dice(SCREEN_WIDTH);
+		boidArray[i].position.y = na_maths.dice(SCREEN_HEIGHT);
+	
+		boidArray[i].currentVelocity.x = float(na_maths.dice(-100,100))/100.0f;
+		boidArray[i].currentVelocity.y = float(na_maths.dice(-100, 100))/100.0f;
+	
+	}
+
+	//TODO: give boids to cuda
 
 	return 0;
 }

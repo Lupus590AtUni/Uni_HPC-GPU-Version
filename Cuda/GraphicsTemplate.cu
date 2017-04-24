@@ -5,6 +5,7 @@
 //////////////////////////////////////////////////////////////////////////////////////////
 #include <iostream>
 using std::cout;
+using std::cerr;
 #include <tchar.h>
 #include <windows.h>
 #include "GL/glut.h"
@@ -176,11 +177,11 @@ struct psudoBoid
 	psudoVector2 currentVelocity;
 };
 
-__global__ void cudaBoidUpdate()
+__global__ void cudaBoidUpdate(psudoBoid* boidArray, int loopCount)
 {
 	//TODO: offset copy
 
-	//starting at own boid, copy data into own memory
+	// starting at own boid, copy data into own memory
 	int i = (int) threadIdx.x;
 	for (int j = 0; j < BOID_MAX; j++)
 	{
@@ -188,8 +189,8 @@ __global__ void cudaBoidUpdate()
 		//TODO: actual copy
 
 
-		i++; //next boid
-		if (i == BOID_MAX) //wrap arround when walking off memeory
+		i++; // next boid
+		if (i == BOID_MAX) // wrap arround when walking off memeory
 			i = 0;
 	}
 
@@ -221,9 +222,19 @@ __global__ void cudaBoidUpdate()
 
 int _tmain(int argc, _TCHAR* argv[])
 {
-	//TODO: set up cuda
 
-	//make all boids
+	const int blockCount = 1;
+	const int threadCount = BOID_MAX;
+	const int loopCount = 10000;
+
+	// set up cuda
+	cudaError err = cudaSetDevice(0);
+	if (err != cudaSuccess)
+	{
+		cerr << "GraphicsTemplate::_tmain - failed to set device\n";
+		return -1;
+	}
+	// make all boids
 	na_maths.seedDice();
 	psudoBoid boidArray[BOID_MAX];
 	for (int i = 0; i < BOID_MAX; i++)
@@ -237,7 +248,71 @@ int _tmain(int argc, _TCHAR* argv[])
 	
 	}
 
-	//TODO: give boids to cuda
+	// tell cuda to allocate space for boids and copy boids to cuda
+
+	psudoBoid* deviceBoidArray;
+	err = cudaMalloc((void**)&deviceBoidArray, BOID_MAX * sizeof(psudoBoid));
+	if (err != cudaSuccess)
+	{
+		cerr << "GraphicsTemplate::_tmain - failed to allocate memory on device\n";
+		cudaFree(deviceBoidArray);
+		return -1;
+	}
+
+	err = cudaMemcpy(deviceBoidArray, boidArray, BOID_MAX * sizeof(psudoBoid), cudaMemcpyHostToDevice);
+	if (err != cudaSuccess)
+	{
+		cerr << "GraphicsTemplate::_tmain - failed to copy memory to device\n";
+		cudaFree(deviceBoidArray);
+		return -1;
+	}
+
+	int* deviceLoopCount;
+	err = cudaMalloc((void**)&deviceLoopCount, sizeof(int));
+	if (err != cudaSuccess)
+	{
+		cerr << "GraphicsTemplate::_tmain - failed to allocate memory on device\n";
+		cudaFree(deviceBoidArray);
+		cudaFree(deviceLoopCount);
+		return -1;
+	}
+
+	err = cudaMemcpy(deviceLoopCount, &loopCount, sizeof(int), cudaMemcpyHostToDevice);
+	if (err != cudaSuccess)
+	{
+		cerr << "GraphicsTemplate::_tmain - failed to copy memory to device\n";
+		cudaFree(deviceBoidArray);
+		cudaFree(deviceLoopCount);
+		return -1;
+	}
+
+	// run kernel
+	cudaBoidUpdate<<<blockCount, threadCount>>>(deviceBoidArray, *deviceLoopCount);
+
+	cout << "Simulating boids\n";
+
+	err = cudaGetLastError();
+	if (err != cudaSuccess)
+	{
+		cerr << "GraphicsTemplate::_tmain - failed to launch kernel: " << cudaGetErrorString(err)<<"\n";
+		cudaFree(deviceBoidArray);
+		cudaFree(deviceLoopCount);
+		return -1;
+	}
+
+	// wait for GPU to finish
+	err = cudaDeviceSynchronize();
+	if (err != cudaSuccess)
+	{
+		cerr << "GraphicsTemplate::_tmain - cudaDeviceSync returned " << err << " errorString = " << cudaGetErrorString(err) << "\n";
+		cudaFree(deviceBoidArray);
+		cudaFree(deviceLoopCount);
+		return -1;
+	}
+	
+	// all ok, cleanup and exit
+	cudaFree(deviceBoidArray);
+	cudaFree(deviceLoopCount);
 
 	return 0;
 }

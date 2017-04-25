@@ -267,27 +267,10 @@ int _tmain(int argc, _TCHAR* argv[])
 		return -1;
 	}
 
-	int* deviceLoopCount;
-	err = cudaMalloc((void**)&deviceLoopCount, sizeof(int));
-	if (err != cudaSuccess)
-	{
-		cerr << "GraphicsTemplate::_tmain - failed to allocate memory on device\n";
-		cudaFree(deviceBoidArray);
-		cudaFree(deviceLoopCount);
-		return -1;
-	}
-
-	err = cudaMemcpy(deviceLoopCount, &loopCount, sizeof(int), cudaMemcpyHostToDevice);
-	if (err != cudaSuccess)
-	{
-		cerr << "GraphicsTemplate::_tmain - failed to copy memory to device\n";
-		cudaFree(deviceBoidArray);
-		cudaFree(deviceLoopCount);
-		return -1;
-	}
+	// loopCount is a normal variable, no need to cudaMalloc and CudaMemcpy
 
 	// run kernel
-	cudaBoidUpdate<<<blockCount, threadCount>>>(deviceBoidArray, *deviceLoopCount);
+	cudaBoidUpdate << <blockCount, threadCount >> >(deviceBoidArray, loopCount);
 
 	cout << "Simulating boids\n";
 
@@ -296,7 +279,6 @@ int _tmain(int argc, _TCHAR* argv[])
 	{
 		cerr << "GraphicsTemplate::_tmain - failed to launch kernel: " << cudaGetErrorString(err)<<"\n";
 		cudaFree(deviceBoidArray);
-		cudaFree(deviceLoopCount);
 		return -1;
 	}
 
@@ -306,13 +288,11 @@ int _tmain(int argc, _TCHAR* argv[])
 	{
 		cerr << "GraphicsTemplate::_tmain - cudaDeviceSync returned " << err << " errorString = " << cudaGetErrorString(err) << "\n";
 		cudaFree(deviceBoidArray);
-		cudaFree(deviceLoopCount);
 		return -1;
 	}
 	
 	// all ok, cleanup and exit
 	cudaFree(deviceBoidArray);
-	cudaFree(deviceLoopCount);
 
 	return 0;
 }

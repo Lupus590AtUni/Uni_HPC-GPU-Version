@@ -278,13 +278,73 @@ __global__ void cudaBoidUpdate(psudoBoid* globalBoidArray, int loopCount)
     }
       
 
-    //TODO: enforce rotation limit
+     // STUFF FROM CPU POST UPDATE METHOD
+      
+    // enforce rotation limit
+    // commented out due to bug in NA_Vector::clockwiseAngle - it doesn't give a different value when you mesure from the other vector. Thiss means that the CPU version has this bug
+    /*float newVelocityCurrentVelocityClockwiseAngle; //this is going to get messy - missing my vector library now
     
-    //TODO: enforece speed limit
+      float newVelocityLenSq = newVelocity.x*newVelocity.x + newVelocity.y*newVelocity.y; // I could possibly do some #defines for readability
+      float currentVelocityLenSq = currentVelocity.x*currentVelocity.x + currentVelocity.y*currentVelocity.y;
+      float dotProduct = newVelocity.x*currentVelocity.x + newVelocity.y*currentVelocity.y;
+      newVelocityCurrentVelocityClockwiseAngle = acos(dotProduct / sqrt(newVelocityLenSq * currentVelocityLenSq));
+      
+    float currentVelocityNewVelocityCClockwiseAngle; //there is a difference, the velocities are swapped
+    
+      float newVelocityLenSq = newVelocity.x*newVelocity.x + newVelocity.y*newVelocity.y; // I could possibly do some #defines for readability
+      float currentVelocityLenSq = currentVelocity.x*currentVelocity.x + currentVelocity.y*currentVelocity.y;
+      float dotProduct = newVelocity.x*currentVelocity.x + newVelocity.y*currentVelocity.y;
+      newVelocityCurrentVelocityClockwiseAngle = acos(dotProduct / sqrt(newVelocityLenSq * currentVelocityLenSq));
+    
+    
+    if (newVelocityCurrentVelocityClockwiseAngle > BOID_ROTATE_MAX && currentVelocityNewVelocityCClockwiseAngle > BOID_ROTATE_MAX)
+    {
+      
+      if (newVelocityCurrentVelocityClockwiseAngle < currentVelocityNewVelocityCClockwiseAngle)//clockwise or counterclockwise?
+      {
+        
+        NA_Matrix r = NA_Matrix(NA_Matrix::types::rotateZ, BOID_ROTATE_MAX);
+        newVelocity = r.matrixXvector(newVelocity);
+      }
+      else
+      {
 
-    //TODO: screen wrap
+        NA_Matrix r = NA_Matrix(NA_Matrix::types::rotateZ, -BOID_ROTATE_MAX);
+        newVelocity = r.matrixXvector(newVelocity);
+      }
+    }*/
+    
+    // enforec speed limit
+    float l = sqrt(newVelocity.x*newVelocity.x + newVelocity.y*newVelocity.y);
+    if( l > BOID_SPEED_MAX);
+    {
+      // normalise and then scale
+      newVelocity.x = (x/l)*BOID_SPEED_MAX;
+      newVelocity.y = (y/l)*BOID_SPEED_MAX;
+    }
+    
+    
+    // update position with velocity
+    localBoidArray[selfIndex].currentVelocity = newVelocity;
+    localBoidArray[selfIndex].position.x += newVelocity.x;
+    localBoidArray[selfIndex].position.y += newVelocity.y;
+    
+    
 
-    // update shared data - all threads have their own cache, so this is safe
+    // screen wrap
+    if (localBoidArray[selfIndex].position.x < 0)
+      localBoidArray[selfIndex].position.x += SCREEN_WIDTH;
+    if (localBoidArray[selfIndex].position.x > SCREEN_WIDTH)
+      localBoidArray[selfIndex].position.x -= SCREEN_WIDTH;
+
+    if (localBoidArray[selfIndex].position.y < 0)
+      localBoidArray[selfIndex].position.y += SCREEN_HEIGHT;
+    if (localBoidArray[selfIndex].position.y > SCREEN_HEIGHT)
+      localBoidArray[selfIndex].position.y -= SCREEN_HEIGHT;
+    
+    __syncthreads();
+
+    // update shared data
     sharedBoidArray[selfIndex] = localBoidArray[selfIndex];
 
     //TODO: cuda/opengl interop render

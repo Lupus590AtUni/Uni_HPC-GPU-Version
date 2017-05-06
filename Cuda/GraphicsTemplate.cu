@@ -177,44 +177,121 @@ struct psudoBoid
 	psudoVector2 currentVelocity;
 };
 
-__global__ void cudaBoidUpdate(psudoBoid* boidArray, int loopCount)
+extern __shared__ psudoBoid sharedBoidArray[BOID_MAX]; // for slight speed increase
+                                                      //could make this volitile but __syncthreads() will effectivly do that
+__global__ bool doInit = true;
+__global__ void cudaBoidUpdate(psudoBoid* globalBoidArray, int loopCount)
 {
-	//TODO: offset copy
+   int selfIndex = (int) threadIdx.x; // slightly more readable and means less casting
+  if(doInit)
+  {
+    // every boid copies it own data
+    sharedBoidArrayBoidArray[selfIndex] = globalBoidArray[selfIndex];
+    doInit = false;
+  }
+  
+  psudoBoid localBoidArray[BOID_MAX];
+  
+  
+  for(int loop = 0; loop < loopCount; loop++)
+  {
+    // rebuild cache
+    // starting at own boid, copy data into own memory
 
-	// starting at own boid, copy data into own memory
-	int i = (int) threadIdx.x;
-	for (int j = 0; j < BOID_MAX; j++)
-	{
-		
-		//TODO: actual copy
+    int i = selfIndex;
+    for (int j = 0; j < BOID_MAX; j++)
+    {
+      
+      // actual copy
+      localBoidArray[i] = sharedBoidArray[i];
 
+      i++; // next boid
+      if (i == BOID_MAX) // wrap arround when walking off memeory
+        i = 0;
+    }
 
-		i++; // next boid
-		if (i == BOID_MAX) // wrap arround when walking off memeory
-			i = 0;
-	}
+    // find which boids are in range
+    int nearbyBoidIndexer[BOID_MAX]; //save memory with a trick
+    int nearbyBoidIndexSize = 0;
+    
+    for (int i = 0; i < BOID_MAX; i++)
+    {
+      if( i == selfIndex )
+      psudoVector2 temp;
+      temp.x = localBoidArray[i].x - localBoidArray[selfIndex].x;
+      temp.y = localBoidArray[i].y - localBoidArray[selfIndex].y;
+      int tempLength = sqrt(temp.x*temp.x + temp.y*temp.y);
+      if (tempLength < BIOD_SIGHT_RANGE)
+      {
+        nearbyBoidIndexer[nearbyBoidIndexSize] = i;
+        nearbyBoidIndexSize++;
+      }
+    }
 
-	//TODO: find which boids are in range (perhaps should do this before copy as only would need to look at position
+    
+    
+    // alightment
+    psudoVector2 sumVelocity;
+    sumVelocity.x = 0;
+    sumVelocity.y = 0;
+    
+    for(int i = 0; i < nearbyBoidIndexSize; i++)
+    {
+      sumVelocity.x += localBoidArray[nearbyBoidIndexer[i]].currentVelocity.x;
+      sumVelocity.y += localBoidArray[nearbyBoidIndexer[i]].currentVelocity.y;
+    }
+    // convert to average
+    sumVelocity.x = sumVelocity.x / nearbyBoidIndexSize;
+    sumVelocity.y = sumVelocity.y / nearbyBoidIndexSize;
+    
+    psudoVector2 newVelocity = sumVelocity;
+    
+    // cohesion
+    psudoVector2 sumPosition;
+    sumPosition.x = 0;
+    sumPosition.y = 0;
+    
+    for(int i = 0; i < nearbyBoidIndexSize; i++) // just realised I could combine this loop with the previous one
+    // keeping them seperate to maintain readability
+    {
+      sumPosition.x += localBoidArray[nearbyBoidIndexer[i]].position.x;
+      sumPosition.y += localBoidArray[nearbyBoidIndexer[i]].position.y;
+    }
+    // convert to average
+    sumPosition.x = sumPosition.x / nearbyBoidIndexSize;
+    sumPosition.y = sumPosition.y / nearbyBoidIndexSize;
 
-	psudoVector2 newVelocity;
+    // seperation
+    for(int i = 0; i < nearbyBoidIndexSize; i++) // another for loop that could be merged?
+    {
+      if(nearbyBoidIndexer[i] != selfIndex) // skip self
+      {
+        psudoVector2 temp;
+        temp.x = localBoidArray[selfIndex].x - localBoidArray[i].x;
+        temp.y = localBoidArray[selfIndex].y - localBoidArray[i].y;
+        int tempLength = sqrt(temp.x*temp.x + temp.y*temp.y);
+        if (tempLength < BOID_RESPECT_DIST)
+        {
+          newVelocity = temp;
+        }
+      }
+    }
+      
 
-	//TODO: alightment
+    //TODO: enforce rotation limit
+    
+    //TODO: enforece speed limit
 
-	//TODO: cohesion
+    //TODO: screen wrap
 
-	//TODO: seperation
+    // update shared data - all threads have their own cache, so this is safe
+    sharedBoidArray[selfIndex] = localBoidArray[selfIndex];
 
-	//TODO: enforce speed/rotation limits
+    //TODO: cuda/opengl interop render
 
-	//TODO: screen wrap
-
-	//TODO: wait for all threads
-
-	//TODO: update global data
-
-	//TODO: cuda/opengl interop render
-
-	//TODO: wait for all threads (get ready for next round)
+    // wait for all threads (get ready for next round)
+    __syncthreads();
+  }
 
 }
 

@@ -18,6 +18,12 @@ using std::vector;
 #include "NA_MathsLib.cuh"
 #include "NA_Timer.cuh"
 
+#include <cuda_runtime.h>
+#include <device_launch_parameters.h>
+#include <cuda.h>
+#include <device_functions.h>
+#include <cuda_runtime_api.h>
+
 //////////////////////////////////////////////////////////////////////////////////////////
 // externals 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -101,7 +107,7 @@ void update()
 	extern void debugMouse();
 	//debugMouse();
 	//cout << "mouse scary? " << graphics.mouseIsScary << "\n";
-	
+
 	if (!DEBUG_RUN_TOP_SPEED) fpsCap.wait();
 
 	// always re-render the scene..
@@ -177,192 +183,214 @@ struct psudoBoid
 	psudoVector2 currentVelocity;
 };
 
-extern __shared__ psudoBoid sharedBoidArray[BOID_MAX]; // for slight speed increase
-                                                      //could make this volitile but __syncthreads() will effectivly do that
-__global__ bool doInit = true;
+
+
 __global__ void cudaBoidUpdate(psudoBoid* globalBoidArray, int loopCount)
 {
-   int selfIndex = (int) threadIdx.x; // slightly more readable and means less casting
-  if(doInit)
-  {
-    // every boid copies it own data
-    sharedBoidArrayBoidArray[selfIndex] = globalBoidArray[selfIndex];
-    doInit = false;
-  }
-  
-  psudoBoid localBoidArray[BOID_MAX];
-  
-  
-  for(int loop = 0; loop < loopCount; loop++)
-  {
-    // rebuild cache
-    // starting at own boid, copy data into own memory
+	printf("kernel launched\n");
+	int selfIndex = (int)threadIdx.x; // slightly more readable and means less casting
 
-    int i = selfIndex;
-    for (int j = 0; j < BOID_MAX; j++)
-    {
-      
-      // actual copy
-      localBoidArray[i] = sharedBoidArray[i];
+   // every boid copies it own data into the shared memory
+	__shared__ psudoBoid sharedBoidArray[BOID_MAX];
+	sharedBoidArray[selfIndex] = globalBoidArray[selfIndex];
 
-      i++; // next boid
-      if (i == BOID_MAX) // wrap arround when walking off memeory
-        i = 0;
-    }
+	printf("init compleate\n");
 
-    // find which boids are in range
-    int nearbyBoidIndexer[BOID_MAX]; //save memory with a trick
-    int nearbyBoidIndexSize = 0;
-    
-    for (int i = 0; i < BOID_MAX; i++)
-    {
-      if( i == selfIndex )
-      psudoVector2 temp;
-      temp.x = localBoidArray[i].x - localBoidArray[selfIndex].x;
-      temp.y = localBoidArray[i].y - localBoidArray[selfIndex].y;
-      int tempLength = sqrt(temp.x*temp.x + temp.y*temp.y);
-      if (tempLength < BIOD_SIGHT_RANGE)
-      {
-        nearbyBoidIndexer[nearbyBoidIndexSize] = i;
-        nearbyBoidIndexSize++;
-      }
-    }
+	psudoBoid localBoidArray[BOID_MAX];
 
-    
-    
-    // alightment
-    psudoVector2 sumVelocity;
-    sumVelocity.x = 0;
-    sumVelocity.y = 0;
-    
-    for(int i = 0; i < nearbyBoidIndexSize; i++)
-    {
-      sumVelocity.x += localBoidArray[nearbyBoidIndexer[i]].currentVelocity.x;
-      sumVelocity.y += localBoidArray[nearbyBoidIndexer[i]].currentVelocity.y;
-    }
-    // convert to average
-    sumVelocity.x = sumVelocity.x / nearbyBoidIndexSize;
-    sumVelocity.y = sumVelocity.y / nearbyBoidIndexSize;
-    
-    psudoVector2 newVelocity = sumVelocity;
-    
-    // cohesion
-    psudoVector2 sumPosition;
-    sumPosition.x = 0;
-    sumPosition.y = 0;
-    
-    for(int i = 0; i < nearbyBoidIndexSize; i++) // just realised I could combine this loop with the previous one
-    // keeping them seperate to maintain readability
-    {
-      sumPosition.x += localBoidArray[nearbyBoidIndexer[i]].position.x;
-      sumPosition.y += localBoidArray[nearbyBoidIndexer[i]].position.y;
-    }
-    // convert to average
-    sumPosition.x = sumPosition.x / nearbyBoidIndexSize;
-    sumPosition.y = sumPosition.y / nearbyBoidIndexSize;
 
-    // seperation
-    for(int i = 0; i < nearbyBoidIndexSize; i++) // another for loop that could be merged?
-    {
-      if(nearbyBoidIndexer[i] != selfIndex) // skip self
-      {
-        psudoVector2 temp;
-        temp.x = localBoidArray[selfIndex].x - localBoidArray[i].x;
-        temp.y = localBoidArray[selfIndex].y - localBoidArray[i].y;
-        int tempLength = sqrt(temp.x*temp.x + temp.y*temp.y);
-        if (tempLength < BOID_RESPECT_DIST)
-        {
-          newVelocity = temp;
-        }
-      }
-    }
-      
+	for (int loop = 0; loop < loopCount; loop++)
+	{
+		printf("begining loop %d\n", loop);
+		// rebuild cache
+		// starting at own boid, copy data into own memory
 
-     // STUFF FROM CPU POST UPDATE METHOD
-      
-    // enforce rotation limit
-    // commented out due to bug in NA_Vector::clockwiseAngle - it doesn't give a different value when you mesure from the other vector. Thiss means that the CPU version has this bug
-    /*float newVelocityCurrentVelocityClockwiseAngle; //this is going to get messy - missing my vector library now
-    
-      float newVelocityLenSq = newVelocity.x*newVelocity.x + newVelocity.y*newVelocity.y; // I could possibly do some #defines for readability
-      float currentVelocityLenSq = currentVelocity.x*currentVelocity.x + currentVelocity.y*currentVelocity.y;
-      float dotProduct = newVelocity.x*currentVelocity.x + newVelocity.y*currentVelocity.y;
-      newVelocityCurrentVelocityClockwiseAngle = acos(dotProduct / sqrt(newVelocityLenSq * currentVelocityLenSq));
-      
-    float currentVelocityNewVelocityCClockwiseAngle; //there is a difference, the velocities are swapped
-    
-      float newVelocityLenSq = newVelocity.x*newVelocity.x + newVelocity.y*newVelocity.y; // I could possibly do some #defines for readability
-      float currentVelocityLenSq = currentVelocity.x*currentVelocity.x + currentVelocity.y*currentVelocity.y;
-      float dotProduct = newVelocity.x*currentVelocity.x + newVelocity.y*currentVelocity.y;
-      newVelocityCurrentVelocityClockwiseAngle = acos(dotProduct / sqrt(newVelocityLenSq * currentVelocityLenSq));
-    
-    
-    if (newVelocityCurrentVelocityClockwiseAngle > BOID_ROTATE_MAX && currentVelocityNewVelocityCClockwiseAngle > BOID_ROTATE_MAX)
-    {
-      
-      if (newVelocityCurrentVelocityClockwiseAngle < currentVelocityNewVelocityCClockwiseAngle)//clockwise or counterclockwise?
-      {
-        
-        NA_Matrix r = NA_Matrix(NA_Matrix::types::rotateZ, BOID_ROTATE_MAX);
-        newVelocity = r.matrixXvector(newVelocity);
-      }
-      else
-      {
+		int i = selfIndex;
+		for (int j = 0; j < BOID_MAX; j++)
+		{
 
-        NA_Matrix r = NA_Matrix(NA_Matrix::types::rotateZ, -BOID_ROTATE_MAX);
-        newVelocity = r.matrixXvector(newVelocity);
-      }
-    }*/
-    
-    // enforec speed limit
-    float l = sqrt(newVelocity.x*newVelocity.x + newVelocity.y*newVelocity.y);
-    if( l > BOID_SPEED_MAX);
-    {
-      // normalise and then scale
-      newVelocity.x = (x/l)*BOID_SPEED_MAX;
-      newVelocity.y = (y/l)*BOID_SPEED_MAX;
-    }
-    
-    
-    // update position with velocity
-    localBoidArray[selfIndex].currentVelocity = newVelocity;
-    localBoidArray[selfIndex].position.x += newVelocity.x;
-    localBoidArray[selfIndex].position.y += newVelocity.y;
-    
-    
+			// actual copy
+			localBoidArray[i] = sharedBoidArray[i];
 
-    // screen wrap
-    if (localBoidArray[selfIndex].position.x < 0)
-      localBoidArray[selfIndex].position.x += SCREEN_WIDTH;
-    if (localBoidArray[selfIndex].position.x > SCREEN_WIDTH)
-      localBoidArray[selfIndex].position.x -= SCREEN_WIDTH;
+			i++; // next boid
+			if (i == BOID_MAX) // wrap arround when walking off memeory
+				i = 0;
+		}
+		printf("local cache rebuilt\n");
 
-    if (localBoidArray[selfIndex].position.y < 0)
-      localBoidArray[selfIndex].position.y += SCREEN_HEIGHT;
-    if (localBoidArray[selfIndex].position.y > SCREEN_HEIGHT)
-      localBoidArray[selfIndex].position.y -= SCREEN_HEIGHT;
-    
-    __syncthreads();
+		// find which boids are in range
+		int nearbyBoidIndexer[BOID_MAX]; //save memory with a trick
+		int nearbyBoidIndexSize = 0;
 
-    // update shared data
-    sharedBoidArray[selfIndex] = localBoidArray[selfIndex];
+		for (int i = 0; i < BOID_MAX; i++)
+		{
+			if (i == selfIndex)
+			{
+				//skip
+			}
+			else
+			{
+				psudoVector2 temp;
+				temp.x = localBoidArray[i].position.x - localBoidArray[selfIndex].position.x;
+				temp.y = localBoidArray[i].position.y - localBoidArray[selfIndex].position.y;
+				int tempLength = sqrt(temp.x*temp.x + temp.y*temp.y);
+				if (tempLength < BIOD_SIGHT_RANGE)
+				{
+					nearbyBoidIndexer[nearbyBoidIndexSize] = i;
+					nearbyBoidIndexSize++;
+				}
+			}
+		}
 
-    //TODO: cuda/opengl interop render
+		printf("sort list made\n");
 
-    // wait for all threads (get ready for next round)
-    __syncthreads();
-  }
+		// alightment
+		psudoVector2 sumVelocity;
+		sumVelocity.x = 0;
+		sumVelocity.y = 0;
+
+		for (int i = 0; i < nearbyBoidIndexSize; i++)
+		{
+			sumVelocity.x += localBoidArray[nearbyBoidIndexer[i]].currentVelocity.x;
+			sumVelocity.y += localBoidArray[nearbyBoidIndexer[i]].currentVelocity.y;
+		}
+		// convert to average
+		sumVelocity.x = sumVelocity.x / nearbyBoidIndexSize;
+		sumVelocity.y = sumVelocity.y / nearbyBoidIndexSize;
+
+		psudoVector2 newVelocity = sumVelocity;
+
+		printf("alignment found\n");
+
+		// cohesion
+		psudoVector2 sumPosition;
+		sumPosition.x = 0;
+		sumPosition.y = 0;
+
+		for (int i = 0; i < nearbyBoidIndexSize; i++) // just realised I could combine this loop with the previous one
+		// keeping them seperate to maintain readability
+		{
+			sumPosition.x += localBoidArray[nearbyBoidIndexer[i]].position.x;
+			sumPosition.y += localBoidArray[nearbyBoidIndexer[i]].position.y;
+		}
+		// convert to average
+		sumPosition.x = sumPosition.x / nearbyBoidIndexSize;
+		sumPosition.y = sumPosition.y / nearbyBoidIndexSize;
+
+		printf("cohesion done\n");
+
+		// seperation
+		for (int i = 0; i < nearbyBoidIndexSize; i++) // another for loop that could be merged?
+		{
+			if (nearbyBoidIndexer[i] != selfIndex) // skip self
+			{
+				psudoVector2 temp;
+				temp.x = localBoidArray[selfIndex].position.x - localBoidArray[i].position.x;
+				temp.y = localBoidArray[selfIndex].position.y - localBoidArray[i].position.y;
+				int tempLength = sqrt(temp.x*temp.x + temp.y*temp.y);
+				if (tempLength < BOID_RESPECT_DIST)
+				{
+					newVelocity = temp;
+				}
+			}
+		}
+
+		printf("seperation done\n");
+
+		// STUFF FROM CPU POST UPDATE METHOD
+
+	   // enforce rotation limit
+	   // commented out due to bug in NA_Vector::clockwiseAngle - it doesn't give a different value when you mesure from the other vector. Thiss means that the CPU version has this bug
+	   /*float newVelocityCurrentVelocityClockwiseAngle; //this is going to get messy - missing my vector library now
+
+		 float newVelocityLenSq = newVelocity.x*newVelocity.x + newVelocity.y*newVelocity.y; // I could possibly do some #defines for readability
+		 float currentVelocityLenSq = currentVelocity.x*currentVelocity.x + currentVelocity.y*currentVelocity.y;
+		 float dotProduct = newVelocity.x*currentVelocity.x + newVelocity.y*currentVelocity.y;
+		 newVelocityCurrentVelocityClockwiseAngle = acos(dotProduct / sqrt(newVelocityLenSq * currentVelocityLenSq));
+
+	   float currentVelocityNewVelocityCClockwiseAngle; //there is a difference, the velocities are swapped
+
+		 float newVelocityLenSq = newVelocity.x*newVelocity.x + newVelocity.y*newVelocity.y; // I could possibly do some #defines for readability
+		 float currentVelocityLenSq = currentVelocity.x*currentVelocity.x + currentVelocity.y*currentVelocity.y;
+		 float dotProduct = newVelocity.x*currentVelocity.x + newVelocity.y*currentVelocity.y;
+		 newVelocityCurrentVelocityClockwiseAngle = acos(dotProduct / sqrt(newVelocityLenSq * currentVelocityLenSq));
+
+
+	   if (newVelocityCurrentVelocityClockwiseAngle > BOID_ROTATE_MAX && currentVelocityNewVelocityCClockwiseAngle > BOID_ROTATE_MAX)
+	   {
+
+		 if (newVelocityCurrentVelocityClockwiseAngle < currentVelocityNewVelocityCClockwiseAngle)//clockwise or counterclockwise?
+		 {
+
+		   NA_Matrix r = NA_Matrix(NA_Matrix::types::rotateZ, BOID_ROTATE_MAX);
+		   newVelocity = r.matrixXvector(newVelocity);
+		 }
+		 else
+		 {
+
+		   NA_Matrix r = NA_Matrix(NA_Matrix::types::rotateZ, -BOID_ROTATE_MAX);
+		   newVelocity = r.matrixXvector(newVelocity);
+		 }
+	   }*/
+
+	   // enforec speed limit
+		float l = sqrt(newVelocity.x*newVelocity.x + newVelocity.y*newVelocity.y);
+		if (l > BOID_SPEED_MAX);
+		{
+			// normalise and then scale
+			newVelocity.x = (newVelocity.x / l)*BOID_SPEED_MAX;
+			newVelocity.y = (newVelocity.y / l)*BOID_SPEED_MAX;
+		}
+
+		printf("obaying the speed limit\n");
+
+		// update position with velocity
+		localBoidArray[selfIndex].currentVelocity = newVelocity;
+		localBoidArray[selfIndex].position.x += newVelocity.x;
+		localBoidArray[selfIndex].position.y += newVelocity.y;
+
+		printf("updated local cache\n");
+
+		// screen wrap
+		if (localBoidArray[selfIndex].position.x < 0)
+			localBoidArray[selfIndex].position.x += SCREEN_WIDTH;
+		if (localBoidArray[selfIndex].position.x > SCREEN_WIDTH)
+			localBoidArray[selfIndex].position.x -= SCREEN_WIDTH;
+
+		if (localBoidArray[selfIndex].position.y < 0)
+			localBoidArray[selfIndex].position.y += SCREEN_HEIGHT;
+		if (localBoidArray[selfIndex].position.y > SCREEN_HEIGHT)
+			localBoidArray[selfIndex].position.y -= SCREEN_HEIGHT;
+
+		printf("staying within the world\n");
+
+		printf("waiting for everyone\n");
+		__syncthreads();
+
+		// update shared data
+		sharedBoidArray[selfIndex] = localBoidArray[selfIndex];
+
+		printf("updated shared info\n");
+
+		//TODO: cuda/opengl interop render
+
+		// wait for all threads (get ready for next round)
+
+		printf("waiting for next loop\n");
+		__syncthreads();
+	}
 
 }
+
 
 
 
 int _tmain(int argc, _TCHAR* argv[])
 {
 
+	const int gridCount = 1;
 	const int blockCount = 1;
-	const int threadCount = BOID_MAX;
-	const int loopCount = 10000;
+	const int loopCount = 10;
 
 	// set up cuda
 	cudaError err = cudaSetDevice(0);
@@ -376,13 +404,13 @@ int _tmain(int argc, _TCHAR* argv[])
 	psudoBoid boidArray[BOID_MAX];
 	for (int i = 0; i < BOID_MAX; i++)
 	{
-		
+
 		boidArray[i].position.x = na_maths.dice(SCREEN_WIDTH);
 		boidArray[i].position.y = na_maths.dice(SCREEN_HEIGHT);
-	
-		boidArray[i].currentVelocity.x = float(na_maths.dice(-100,100))/100.0f;
-		boidArray[i].currentVelocity.y = float(na_maths.dice(-100, 100))/100.0f;
-	
+
+		boidArray[i].currentVelocity.x = float(na_maths.dice(-100, 100)) / 100.0f;
+		boidArray[i].currentVelocity.y = float(na_maths.dice(-100, 100)) / 100.0f;
+
 	}
 
 	// tell cuda to allocate space for boids and copy boids to cuda
@@ -407,14 +435,15 @@ int _tmain(int argc, _TCHAR* argv[])
 	// loopCount is a normal variable, no need to cudaMalloc and CudaMemcpy
 
 	// run kernel
-	cudaBoidUpdate << <blockCount, threadCount >> >(deviceBoidArray, loopCount);
+	std::cout << "Simulating boids\n";
+	cudaBoidUpdate << <gridCount, blockCount >> >(deviceBoidArray, loopCount);
 
-	cout << "Simulating boids\n";
+	
 
 	err = cudaGetLastError();
 	if (err != cudaSuccess)
 	{
-		cerr << "GraphicsTemplate::_tmain - failed to launch kernel: " << cudaGetErrorString(err)<<"\n";
+		cerr << "GraphicsTemplate::_tmain - failed to launch kernel: " << cudaGetErrorString(err) << "\n";
 		cudaFree(deviceBoidArray);
 		return -1;
 	}
@@ -427,7 +456,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		cudaFree(deviceBoidArray);
 		return -1;
 	}
-	
+
 	// all ok, cleanup and exit
 	cudaFree(deviceBoidArray);
 

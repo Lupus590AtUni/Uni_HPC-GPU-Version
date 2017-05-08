@@ -390,7 +390,7 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	const int gridCount = 1;
 	const int blockCount = 1;
-	const int loopCount = 10;
+	const int loopCount = 1000;
 
 	// set up cuda
 	cudaError err = cudaSetDevice(0);

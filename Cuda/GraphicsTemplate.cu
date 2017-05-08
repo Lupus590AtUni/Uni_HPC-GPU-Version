@@ -380,6 +380,9 @@ __global__ void cudaBoidUpdate(psudoBoid* globalBoidArray, int loopCount)
 		__syncthreads();
 	}
 
+	// put stuff back in global memory so that CPU can collect it if wanted
+	globalBoidArray[selfIndex] = sharedBoidArray[selfIndex];
+	
 }
 
 

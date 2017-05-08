@@ -194,14 +194,14 @@ __global__ void cudaBoidUpdate(psudoBoid* globalBoidArray, int loopCount)
 	__shared__ psudoBoid sharedBoidArray[BOID_MAX];
 	sharedBoidArray[selfIndex] = globalBoidArray[selfIndex];
 
-	printf("init compleate\n");
+	printf("init complete\n");
 
 	psudoBoid localBoidArray[BOID_MAX];
 
 
 	for (int loop = 0; loop < loopCount; loop++)
 	{
-		printf("begining loop %d\n", loop);
+		printf("beginning loop %d\n", loop);
 		// rebuild cache
 		// starting at own boid, copy data into own memory
 
@@ -391,15 +391,16 @@ __global__ void cudaBoidUpdate(psudoBoid* globalBoidArray, int loopCount)
 int _tmain(int argc, _TCHAR* argv[])
 {
 
-	const int gridCount = 1;
-	const int blockCount = 1;
-	const int loopCount = 1000;
+	const int numberOfBlocks = 1;
+	const int numberOfThreadsPerBlock = BOID_MAX;
+	const int loopCount = 1;
 
 	// set up cuda
 	cudaError err = cudaSetDevice(0);
 	if (err != cudaSuccess)
 	{
 		cerr << "GraphicsTemplate::_tmain - failed to set device\n";
+		getchar();
 		return -1;
 	}
 	// make all boids
@@ -424,6 +425,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	{
 		cerr << "GraphicsTemplate::_tmain - failed to allocate memory on device\n";
 		cudaFree(deviceBoidArray);
+		getchar();
 		return -1;
 	}
 
@@ -432,6 +434,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	{
 		cerr << "GraphicsTemplate::_tmain - failed to copy memory to device\n";
 		cudaFree(deviceBoidArray);
+		getchar();
 		return -1;
 	}
 
@@ -439,7 +442,7 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	// run kernel
 	std::cout << "Simulating boids\n";
-	cudaBoidUpdate << <gridCount, blockCount >> >(deviceBoidArray, loopCount);
+	cudaBoidUpdate << <numberOfBlocks, numberOfThreadsPerBlock >> >(deviceBoidArray, loopCount);
 
 	
 
@@ -448,6 +451,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	{
 		cerr << "GraphicsTemplate::_tmain - failed to launch kernel: " << cudaGetErrorString(err) << "\n";
 		cudaFree(deviceBoidArray);
+		getchar();
 		return -1;
 	}
 
@@ -457,12 +461,15 @@ int _tmain(int argc, _TCHAR* argv[])
 	{
 		cerr << "GraphicsTemplate::_tmain - cudaDeviceSync returned " << err << " errorString = " << cudaGetErrorString(err) << "\n";
 		cudaFree(deviceBoidArray);
+		getchar();
 		return -1;
 	}
 
 	// all ok, cleanup and exit
 	cudaFree(deviceBoidArray);
+	cout << "all done\n";
 
+	getchar();
 	return 0;
 }
 

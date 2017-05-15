@@ -24,6 +24,15 @@ using std::vector;
 #include <device_functions.h>
 #include <cuda_runtime_api.h>
 
+//http://www.cplusplus.com/reference/chrono/high_resolution_clock/now/
+#include <ctime>
+#include <ratio>
+#include <chrono>
+using namespace std::chrono;
+
+//http://www.cplusplus.com/reference/string/stoi/
+#include <string> 
+
 //////////////////////////////////////////////////////////////////////////////////////////
 // externals 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -390,6 +399,17 @@ __global__ void cudaBoidUpdate(psudoBoid* globalBoidArray, int loopCount)
 
 int _tmain(int argc, _TCHAR* argv[])
 {
+  
+  
+  if (argc != 2)
+	{
+		std::cerr << "Expect number as only arg for boid count.\n";
+		return -1;
+	}
+	else
+	{
+		BOID_MAX = std::stoi(argv[1], NULL); //http://www.cplusplus.com/reference/string/stoi/
+	}
 
 	const int numberOfBlocks = 1;
 	const int numberOfThreadsPerBlock = BOID_MAX;
@@ -442,6 +462,7 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	// run kernel
 	std::cout << "Simulating boids\n";
+  high_resolution_clock::time_point t1 = high_resolution_clock::now();
 	cudaBoidUpdate << <numberOfBlocks, numberOfThreadsPerBlock >> >(deviceBoidArray, loopCount);
 
 	
@@ -457,6 +478,12 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	// wait for GPU to finish
 	err = cudaDeviceSynchronize();
+  high_resolution_clock::time_point t2 = high_resolution_clock::now();
+
+  duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
+
+  cout << "Time taken " << time_span.count() << " seconds.";
+  
 	if (err != cudaSuccess)
 	{
 		cerr << "GraphicsTemplate::_tmain - cudaDeviceSync returned " << err << " errorString = " << cudaGetErrorString(err) << "\n";

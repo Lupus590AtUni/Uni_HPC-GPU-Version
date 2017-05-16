@@ -194,7 +194,7 @@ struct psudoBoid
 
 
 
-__global__ void cudaBoidUpdate(psudoBoid* globalBoidArray, int loopCount, const int BOID_MAX)
+__global__ void cudaBoidUpdate(psudoBoid* globalBoidArray, int loopCount)
 {
 	//printf("kernel launched\n");
 	int selfIndex = (int)threadIdx.x; // slightly more readable and means less casting
@@ -390,20 +390,12 @@ __global__ void cudaBoidUpdate(psudoBoid* globalBoidArray, int loopCount, const 
 		__syncthreads();
 	}
 
-	if (nearbyBoidIndexer != NULL)
-	{
-		free(nearbyBoidIndexer);
-		nearbyBoidIndexer = NULL;
-	}
-	if (localBoidArray != NULL)
-	{
-		free(localBoidArray);
-		localBoidArray = NULL;
-	}
+	free(nearbyBoidIndexer);
+
 	// put stuff back in global memory so that CPU can collect it if wanted
-	globalBoidArray[selfIndex] = sharedBoidArray[selfIndex]; // variable watch in debug reports: sharedBoidArray[0] all sub values == NaN
-	__syncthreads();
+	globalBoidArray[selfIndex] = sharedBoidArray[selfIndex];
 	if (selfIndex == 0) free(sharedBoidArray);
+	free(localBoidArray);
 	
 }
 
@@ -424,7 +416,6 @@ int _tmain(int argc, _TCHAR* argv[])
 	{
 		BOID_MAX = std::stoi(argv[1], NULL); //http://www.cplusplus.com/reference/string/stoi/
 		loopCount = std::stoi(argv[2], NULL);
-
 	}
 
 	const int numberOfBlocks = 1;
@@ -435,6 +426,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	if (err != cudaSuccess)
 	{
 		cerr << "GraphicsTemplate::_tmain - failed to set device\n";
+		getchar();
 		return -1;
 	}
 	// make all boids
@@ -460,6 +452,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	{
 		cerr << "GraphicsTemplate::_tmain - failed to allocate memory on device\n";
 		cudaFree(deviceBoidArray);
+		getchar();
 		return -1;
 	}
 
@@ -468,6 +461,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	{
 		cerr << "GraphicsTemplate::_tmain - failed to copy memory to device\n";
 		cudaFree(deviceBoidArray);
+		getchar();
 		return -1;
 	}
 
@@ -476,7 +470,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	// run kernel
 	//std::cout << "Simulating boids\n";
   high_resolution_clock::time_point t1 = high_resolution_clock::now();
-	cudaBoidUpdate << <numberOfBlocks, numberOfThreadsPerBlock >> >(deviceBoidArray, loopCount, BOID_MAX);
+	cudaBoidUpdate << <numberOfBlocks, numberOfThreadsPerBlock >> >(deviceBoidArray, loopCount);
 
 	
 
@@ -485,6 +479,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	{
 		cerr << "GraphicsTemplate::_tmain - failed to launch kernel: " << cudaGetErrorString(err) << "\n";
 		cudaFree(deviceBoidArray);
+		getchar();
 		return -1;
 	}
 
@@ -500,6 +495,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	{
 		cerr << "GraphicsTemplate::_tmain - cudaDeviceSync returned " << err << " errorString = " << cudaGetErrorString(err) << "\n";
 		cudaFree(deviceBoidArray);
+		getchar();
 		return -1;
 	}
 

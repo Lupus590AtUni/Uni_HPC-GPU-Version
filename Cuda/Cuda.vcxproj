@@ -153,9 +153,6 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
   <ItemGroup>
     <CudaCompile Include="cRenderClass.cu" />
     <CudaCompile Include="GraphicsTemplate.cu" />
-    <CudaCompile Include="kernel.cu">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-    </CudaCompile>
     <CudaCompile Include="NA_Boid.cu" />
     <CudaCompile Include="NA_LinkedListNode.cu" />
     <CudaCompile Include="NA_MathsLib.cu" />

@@ -194,23 +194,24 @@ struct psudoBoid
 
 
 
-__global__ void cudaBoidUpdate(psudoBoid* globalBoidArray, int loopCount)
+__global__ void cudaBoidUpdate(psudoBoid* globalBoidArray, int loopCount, const int BOID_MAX)
 {
-	printf("kernel launched\n");
+	//printf("kernel launched\n");
 	int selfIndex = (int)threadIdx.x; // slightly more readable and means less casting
 
    // every boid copies it own data into the shared memory
-	__shared__ psudoBoid sharedBoidArray[BOID_MAX];
+	__shared__ psudoBoid* sharedBoidArray;
+	if(selfIndex == 0) sharedBoidArray = (psudoBoid*)malloc(BOID_MAX * sizeof(psudoBoid));
 	sharedBoidArray[selfIndex] = globalBoidArray[selfIndex];
 
-	printf("init complete\n");
+	//printf("init complete\n");
 
-	psudoBoid localBoidArray[BOID_MAX];
+	psudoBoid* localBoidArray = (psudoBoid*)malloc(BOID_MAX * sizeof(psudoBoid));
 
-
+	int* nearbyBoidIndexer = (int*)malloc(BOID_MAX * sizeof(int));  //save memory while creating short list with a trick
 	for (int loop = 0; loop < loopCount; loop++)
 	{
-		printf("beginning loop %d\n", loop);
+		//printf("beginning loop %d\n", loop);
 		// rebuild cache
 		// starting at own boid, copy data into own memory
 
@@ -225,10 +226,10 @@ __global__ void cudaBoidUpdate(psudoBoid* globalBoidArray, int loopCount)
 			if (i == BOID_MAX) // wrap arround when walking off memeory
 				i = 0;
 		}
-		printf("local cache rebuilt\n");
+		//printf("local cache rebuilt\n");
 
 		// find which boids are in range
-		int nearbyBoidIndexer[BOID_MAX]; //save memory with a trick
+		
 		int nearbyBoidIndexSize = 0;
 
 		for (int i = 0; i < BOID_MAX; i++)
@@ -251,7 +252,7 @@ __global__ void cudaBoidUpdate(psudoBoid* globalBoidArray, int loopCount)
 			}
 		}
 
-		printf("sort list made\n");
+		//printf("sort list made\n");
 
 		// alightment
 		psudoVector2 sumVelocity;
@@ -268,8 +269,8 @@ __global__ void cudaBoidUpdate(psudoBoid* globalBoidArray, int loopCount)
 		sumVelocity.y = sumVelocity.y / nearbyBoidIndexSize;
 
 		psudoVector2 newVelocity = sumVelocity;
-
-		printf("alignment found\n");
+		
+		//printf("alignment found\n");
 
 		// cohesion
 		psudoVector2 sumPosition;
@@ -286,8 +287,8 @@ __global__ void cudaBoidUpdate(psudoBoid* globalBoidArray, int loopCount)
 		sumPosition.x = sumPosition.x / nearbyBoidIndexSize;
 		sumPosition.y = sumPosition.y / nearbyBoidIndexSize;
 
-		printf("cohesion done\n");
-
+		//printf("cohesion done\n");
+		
 		// seperation
 		for (int i = 0; i < nearbyBoidIndexSize; i++) // another for loop that could be merged?
 		{
@@ -304,7 +305,7 @@ __global__ void cudaBoidUpdate(psudoBoid* globalBoidArray, int loopCount)
 			}
 		}
 
-		printf("seperation done\n");
+		//printf("seperation done\n");
 
 		// STUFF FROM CPU POST UPDATE METHOD
 
@@ -351,14 +352,14 @@ __global__ void cudaBoidUpdate(psudoBoid* globalBoidArray, int loopCount)
 			newVelocity.y = (newVelocity.y / l)*BOID_SPEED_MAX;
 		}
 
-		printf("obaying the speed limit\n");
+		//printf("obaying the speed limit\n");
 
 		// update position with velocity
 		localBoidArray[selfIndex].currentVelocity = newVelocity;
 		localBoidArray[selfIndex].position.x += newVelocity.x;
 		localBoidArray[selfIndex].position.y += newVelocity.y;
 
-		printf("updated local cache\n");
+		//printf("updated local cache\n");
 
 		// screen wrap
 		if (localBoidArray[selfIndex].position.x < 0)
@@ -371,26 +372,38 @@ __global__ void cudaBoidUpdate(psudoBoid* globalBoidArray, int loopCount)
 		if (localBoidArray[selfIndex].position.y > SCREEN_HEIGHT)
 			localBoidArray[selfIndex].position.y -= SCREEN_HEIGHT;
 
-		printf("staying within the world\n");
+		//printf("staying within the world\n");
 
-		printf("waiting for everyone\n");
+		//printf("waiting for everyone\n");
 		__syncthreads();
 
 		// update shared data
 		sharedBoidArray[selfIndex] = localBoidArray[selfIndex];
 
-		printf("updated shared info\n");
+		//printf("updated shared info\n");
 
 		//TODO: cuda/opengl interop render
 
 		// wait for all threads (get ready for next round)
 
-		printf("waiting for next loop\n");
+		//printf("waiting for next loop\n");
 		__syncthreads();
 	}
 
+	if (nearbyBoidIndexer != NULL)
+	{
+		free(nearbyBoidIndexer);
+		nearbyBoidIndexer = NULL;
+	}
+	if (localBoidArray != NULL)
+	{
+		free(localBoidArray);
+		localBoidArray = NULL;
+	}
 	// put stuff back in global memory so that CPU can collect it if wanted
-	globalBoidArray[selfIndex] = sharedBoidArray[selfIndex];
+	globalBoidArray[selfIndex] = sharedBoidArray[selfIndex]; // variable watch in debug reports: sharedBoidArray[0] all sub values == NaN
+	__syncthreads();
+	if (selfIndex == 0) free(sharedBoidArray);
 	
 }
 
@@ -401,31 +414,33 @@ int _tmain(int argc, _TCHAR* argv[])
 {
   
   
-  if (argc != 2)
+	int loopCount;
+	if (argc != 3)
 	{
-		std::cerr << "Expect number as only arg for boid count.\n";
+		std::cerr << "usage: " << argv[0] << " <boidCount> <loopCount> \n";
 		return -1;
 	}
 	else
 	{
 		BOID_MAX = std::stoi(argv[1], NULL); //http://www.cplusplus.com/reference/string/stoi/
+		loopCount = std::stoi(argv[2], NULL);
+
 	}
 
 	const int numberOfBlocks = 1;
 	const int numberOfThreadsPerBlock = BOID_MAX;
-	const int loopCount = 1;
 
 	// set up cuda
 	cudaError err = cudaSetDevice(0);
 	if (err != cudaSuccess)
 	{
 		cerr << "GraphicsTemplate::_tmain - failed to set device\n";
-		getchar();
 		return -1;
 	}
 	// make all boids
 	na_maths.seedDice();
-	psudoBoid boidArray[BOID_MAX];
+	psudoBoid* boidArray = (psudoBoid*) malloc(BOID_MAX * sizeof(psudoBoid));
+	//psudoBoid boidArray[BOID_MAX];
 	for (int i = 0; i < BOID_MAX; i++)
 	{
 
@@ -445,7 +460,6 @@ int _tmain(int argc, _TCHAR* argv[])
 	{
 		cerr << "GraphicsTemplate::_tmain - failed to allocate memory on device\n";
 		cudaFree(deviceBoidArray);
-		getchar();
 		return -1;
 	}
 
@@ -454,16 +468,15 @@ int _tmain(int argc, _TCHAR* argv[])
 	{
 		cerr << "GraphicsTemplate::_tmain - failed to copy memory to device\n";
 		cudaFree(deviceBoidArray);
-		getchar();
 		return -1;
 	}
 
 	// loopCount is a normal variable, no need to cudaMalloc and CudaMemcpy
 
 	// run kernel
-	std::cout << "Simulating boids\n";
+	//std::cout << "Simulating boids\n";
   high_resolution_clock::time_point t1 = high_resolution_clock::now();
-	cudaBoidUpdate << <numberOfBlocks, numberOfThreadsPerBlock >> >(deviceBoidArray, loopCount);
+	cudaBoidUpdate << <numberOfBlocks, numberOfThreadsPerBlock >> >(deviceBoidArray, loopCount, BOID_MAX);
 
 	
 
@@ -472,7 +485,6 @@ int _tmain(int argc, _TCHAR* argv[])
 	{
 		cerr << "GraphicsTemplate::_tmain - failed to launch kernel: " << cudaGetErrorString(err) << "\n";
 		cudaFree(deviceBoidArray);
-		getchar();
 		return -1;
 	}
 
@@ -482,21 +494,21 @@ int _tmain(int argc, _TCHAR* argv[])
 
   duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
 
-  cout << "Time taken " << time_span.count() << " seconds.";
+  cout << time_span.count()<<"\n";
   
 	if (err != cudaSuccess)
 	{
 		cerr << "GraphicsTemplate::_tmain - cudaDeviceSync returned " << err << " errorString = " << cudaGetErrorString(err) << "\n";
 		cudaFree(deviceBoidArray);
-		getchar();
 		return -1;
 	}
 
 	// all ok, cleanup and exit
 	cudaFree(deviceBoidArray);
-	cout << "all done\n";
+	//cout << "all done\n";
 
-	getchar();
+	free(boidArray);
+
 	return 0;
 }
 

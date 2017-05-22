@@ -1,37 +1,10 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <CudaCompile Include="cRenderClass.cu">
-      <Filter>Source</Filter>
-    </CudaCompile>
     <CudaCompile Include="GraphicsTemplate.cu">
       <Filter>Source</Filter>
     </CudaCompile>
-    <CudaCompile Include="NA_Boid.cu">
-      <Filter>Source</Filter>
-    </CudaCompile>
-    <CudaCompile Include="NA_LinkedListNode.cu">
-      <Filter>Source</Filter>
-    </CudaCompile>
     <CudaCompile Include="NA_MathsLib.cu">
-      <Filter>Source</Filter>
-    </CudaCompile>
-    <CudaCompile Include="NA_Matrix.cu">
-      <Filter>Source</Filter>
-    </CudaCompile>
-    <CudaCompile Include="NA_Queue.cu">
-      <Filter>Source</Filter>
-    </CudaCompile>
-    <CudaCompile Include="NA_Return.cu">
-      <Filter>Source</Filter>
-    </CudaCompile>
-    <CudaCompile Include="NA_Stack.cu">
-      <Filter>Source</Filter>
-    </CudaCompile>
-    <CudaCompile Include="NA_Timer.cu">
-      <Filter>Source</Filter>
-    </CudaCompile>
-    <CudaCompile Include="NA_Vector.cu">
       <Filter>Source</Filter>
     </CudaCompile>
   </ItemGroup>
@@ -46,37 +19,10 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="cRenderClass.cuh">
-      <Filter>Header</Filter>
-    </ClInclude>
     <ClInclude Include="globals.cuh">
       <Filter>Header</Filter>
     </ClInclude>
-    <ClInclude Include="NA_Boid.cuh">
-      <Filter>Header</Filter>
-    </ClInclude>
-    <ClInclude Include="NA_LinkedListNode.cuh">
-      <Filter>Header</Filter>
-    </ClInclude>
     <ClInclude Include="NA_MathsLib.cuh">
-      <Filter>Header</Filter>
-    </ClInclude>
-    <ClInclude Include="NA_Matrix.cuh">
-      <Filter>Header</Filter>
-    </ClInclude>
-    <ClInclude Include="NA_Queue.cuh">
-      <Filter>Header</Filter>
-    </ClInclude>
-    <ClInclude Include="NA_Return.cuh">
-      <Filter>Header</Filter>
-    </ClInclude>
-    <ClInclude Include="NA_Stack.cuh">
-      <Filter>Header</Filter>
-    </ClInclude>
-    <ClInclude Include="NA_Timer.cuh">
-      <Filter>Header</Filter>
-    </ClInclude>
-    <ClInclude Include="NA_Vector.cuh">
       <Filter>Header</Filter>
     </ClInclude>
   </ItemGroup>

@@ -8,15 +8,12 @@ using std::cout;
 using std::cerr;
 #include <tchar.h>
 #include <windows.h>
-#include "GL/glut.h"
 #include "globals.cuh"
-#include "cRenderClass.cuh"
 #include <vector>
 using std::vector;
-//
-#include "NA_Boid.cuh"
+
+
 #include "NA_MathsLib.cuh"
-#include "NA_Timer.cuh"
 
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
@@ -33,141 +30,6 @@ using namespace std::chrono;
 //http://www.cplusplus.com/reference/string/stoi/
 #include <string> 
 
-//////////////////////////////////////////////////////////////////////////////////////////
-// externals 
-//////////////////////////////////////////////////////////////////////////////////////////
-extern cRenderClass graphics;
-extern NA_MathsLib na_maths;
-
-vector<NA_Boid> boidList; //not really a list
-
-//////////////////////////////////////////////////////////////////////////////////////////
-// renderScene() - render the scene
-//////////////////////////////////////////////////////////////////////////////////////////
-void renderScene()
-{
-	for (int i = 0; i < BOID_MAX; i++)
-	{
-		boidList[i].draw();
-	}
-
-	if (DEBUG_AVERAGE_POS)
-	{
-		NA_Vector sumPosition;
-		for (int i = 0; i < BOID_MAX; i++)
-		{
-			sumPosition.x += boidList[i].position.x;
-			sumPosition.y += boidList[i].position.y;
-		}
-		//convert to average
-		sumPosition.x = sumPosition.x / (BOID_MAX);
-		sumPosition.y = sumPosition.y / (BOID_MAX);
-
-		graphics.setPointSize(10);
-		graphics.setColour(0.0f, 0.0f, 1.0f);
-		graphics.drawPixel(sumPosition.x, sumPosition.y);
-	}
-
-	// render the scene
-	graphics.render();
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////
-// update() - update function
-//////////////////////////////////////////////////////////////////////////////////////////
-void update()
-{
-	static bool first = true;
-
-	if (first)
-		renderScene();
-	first = false;
-
-	//renderScene();
-	//cout << "first render done\n";
-	// add any update code here...
-	static NA_Timer fpsCap;//wait if FPS is too high (if boids move too fast)
-	fpsCap.restart();
-	if (DEBUG_PRINT_POS_OF_ALL_BOIDS)
-		fpsCap.setDuration(DEBUG_UPDATE_FREQUENCY);
-	else
-		fpsCap.setDuration(1.0f / FPS_MAX);
-
-
-	if (first && !DEBUG_RUN_TOP_SPEED)
-		fpsCap.wait();
-
-	for (int i = 0; i < BOID_MAX; i++)
-	{
-		boidList[i].update();
-	}
-
-	if (DEBUG_PRINT_POS_OF_ALL_BOIDS || DEBUG_PRINT_POS_OF_FIRST_BOID) system("cls");
-	for (int i = 0; i < BOID_MAX; i++)
-	{
-		boidList[i].postUpdate();
-		if (DEBUG_PRINT_POS_OF_ALL_BOIDS || DEBUG_PRINT_POS_OF_FIRST_BOID && i == 0) cout << "pos: " << boidList[i].position.x << " " << boidList[i].position.y << "\n";
-	}
-
-
-
-	//cout << "updates done, waiting\n";
-
-	extern void debugMouse();
-	//debugMouse();
-	//cout << "mouse scary? " << graphics.mouseIsScary << "\n";
-
-	if (!DEBUG_RUN_TOP_SPEED) fpsCap.wait();
-
-	// always re-render the scene..
-	renderScene();
-	//cout << " post render done\n";
-}
-
-
-
-////////////////////////////////////////////////////////////////////////////////////////
-// _tmain() - program entry point
-////////////////////////////////////////////////////////////////////////////////////////
-//int _tmain(int argc, _TCHAR* argv[])
-//{	
-//	// init glut stuff..
-//	graphics.create(argc, argv);
-//
-//	// good place for one-off initialisations and objects creation..
-//
-//	//make all boids
-//	na_maths.seedDice();
-//	for (int i = 0; i < BOID_MAX; i++)
-//	{
-//		NA_Boid temp;
-//		temp.position.x = na_maths.dice(SCREEN_WIDTH);
-//		temp.position.y = na_maths.dice(SCREEN_HEIGHT);
-//
-//		//temp.position.x = 100.0f;
-//		//temp.position.y = 100.0f;
-//
-//		temp.currentVelocity.x = float(na_maths.dice(-100,100))/100.0f;
-//		temp.currentVelocity.y = float(na_maths.dice(-100, 100))/100.0f;
-//
-//		boidList.push_back(temp);
-//
-//		//cout << "POS: X: " << temp.position.x << " Y: " << temp.position.y << "\n";
-//		//cout << "VEL: X: " << temp.currentVelocity.x << " Y: " << temp.currentVelocity.y << "\n";
-//
-//		//NA_Vector t = temp.currentVelocity;
-//		//t.normalise();
-//		//cout << "NV: X: " << t.x << " Y: " << t.y << "\n\n";
-//
-//
-//	}
-//
-//
-//	// enter game loop..
-//	graphics.loop();	
-//
-//	return 0;
-//}
 
 
 /////////////////////////////////////////////////////////////////////////
@@ -194,7 +56,7 @@ struct psudoBoid
 
 
 
-__global__ void cudaBoidUpdate(psudoBoid* globalBoidArray, int loopCount)
+__global__ void cudaBoidUpdate(psudoBoid* globalBoidArray, int loopCount, const int BOID_MAX)
 {
 	//printf("kernel launched\n");
 	int selfIndex = (int)threadIdx.x; // slightly more readable and means less casting
@@ -409,6 +271,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	if (argc != 3)
 	{
 		std::cerr << "usage: " << argv[0] << " <boidCount> <loopCount> \n";
+		cout << "errored\n";
 		return -1;
 	}
 	else
@@ -425,10 +288,11 @@ int _tmain(int argc, _TCHAR* argv[])
 	if (err != cudaSuccess)
 	{
 		cerr << "GraphicsTemplate::_tmain - failed to set device\n";
-		getchar();
+		cout << "errored\n";
 		return -1;
 	}
 	// make all boids
+	extern NA_MathsLib na_maths;
 	na_maths.seedDice();
 	psudoBoid* boidArray = (psudoBoid*) malloc(BOID_MAX * sizeof(psudoBoid));
 	//psudoBoid boidArray[BOID_MAX];
@@ -451,7 +315,8 @@ int _tmain(int argc, _TCHAR* argv[])
 	{
 		cerr << "GraphicsTemplate::_tmain - failed to allocate memory on device\n";
 		cudaFree(deviceBoidArray);
-		getchar();
+		free(boidArray);
+		cout << "errored\n";
 		return -1;
 	}
 
@@ -460,7 +325,8 @@ int _tmain(int argc, _TCHAR* argv[])
 	{
 		cerr << "GraphicsTemplate::_tmain - failed to copy memory to device\n";
 		cudaFree(deviceBoidArray);
-		getchar();
+		free(boidArray);
+		cout << "errored\n";
 		return -1;
 	}
 
@@ -469,7 +335,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	// run kernel
 	//std::cout << "Simulating boids\n";
   high_resolution_clock::time_point t1 = high_resolution_clock::now();
-	cudaBoidUpdate << <numberOfBlocks, numberOfThreadsPerBlock >> >(deviceBoidArray, loopCount);
+	cudaBoidUpdate << <numberOfBlocks, numberOfThreadsPerBlock >> >(deviceBoidArray, loopCount, BOID_MAX);
 
 	
 
@@ -478,7 +344,8 @@ int _tmain(int argc, _TCHAR* argv[])
 	{
 		cerr << "GraphicsTemplate::_tmain - failed to launch kernel: " << cudaGetErrorString(err) << "\n";
 		cudaFree(deviceBoidArray);
-		getchar();
+		free(boidArray);
+		cout << "errored\n";
 		return -1;
 	}
 
@@ -486,23 +353,26 @@ int _tmain(int argc, _TCHAR* argv[])
 	err = cudaDeviceSynchronize();
   high_resolution_clock::time_point t2 = high_resolution_clock::now();
 
-  duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
-
-  cout << time_span.count()<<"\n";
+  
   
 	if (err != cudaSuccess)
 	{
 		cerr << "GraphicsTemplate::_tmain - cudaDeviceSync returned " << err << " errorString = " << cudaGetErrorString(err) << "\n";
 		cudaFree(deviceBoidArray);
-		getchar();
+		free(boidArray);
+		cout << "errored\n";
 		return -1;
 	}
+
+	duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
+
+	cout << time_span.count() << "\n";
 
 	// all ok, cleanup and exit
 	cudaFree(deviceBoidArray);
 	//cout << "all done\n";
 
 	free(boidArray);
-
+	std::cerr << "all ok\n";
 	return 0;
 }

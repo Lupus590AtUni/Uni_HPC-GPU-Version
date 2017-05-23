@@ -293,7 +293,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	}
 	// make all boids
 	extern NA_MathsLib na_maths;
-	na_maths.seedDice();
+	na_maths.seedDice(0);
 	psudoBoid* boidArray = (psudoBoid*) malloc(BOID_MAX * sizeof(psudoBoid));
 	//psudoBoid boidArray[BOID_MAX];
 	for (int i = 0; i < BOID_MAX; i++)

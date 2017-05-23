@@ -58,22 +58,25 @@ struct psudoBoid
 
 __global__ void cudaBoidUpdate(psudoBoid* globalBoidArray, int loopCount, const int BOID_MAX)
 {
-	//printf("kernel launched\n");
+	bool debug = false;
+	bool allThreadsDebug = false;
 	int selfIndex = (int)threadIdx.x; // slightly more readable and means less casting
-
+	if ((selfIndex == 0 && debug) || allThreadsDebug) printf("kernel launched\n");
+	
    // every boid copies it own data into the shared memory
 	__shared__ psudoBoid* sharedBoidArray;
 	if(selfIndex == 0) sharedBoidArray = (psudoBoid*)malloc(BOID_MAX * sizeof(psudoBoid));
+	__syncthreads();
 	sharedBoidArray[selfIndex] = globalBoidArray[selfIndex];
 
-	//printf("init complete\n");
+	if ((selfIndex ==0 && debug) || allThreadsDebug) printf("init complete\n");
 
 	psudoBoid* localBoidArray = (psudoBoid*)malloc(BOID_MAX * sizeof(psudoBoid));
 
 	int* nearbyBoidIndexer = (int*)malloc(BOID_MAX * sizeof(int));  //save memory while creating short list with a trick
 	for (int loop = 0; loop < loopCount; loop++)
 	{
-		//printf("beginning loop %d\n", loop);
+		if ((selfIndex ==0 && debug) || allThreadsDebug) printf("beginning loop %d\n", loop);
 		// rebuild cache
 		// starting at own boid, copy data into own memory
 
@@ -88,7 +91,7 @@ __global__ void cudaBoidUpdate(psudoBoid* globalBoidArray, int loopCount, const 
 			if (i == BOID_MAX) // wrap arround when walking off memeory
 				i = 0;
 		}
-		//printf("local cache rebuilt\n");
+		if ((selfIndex ==0 && debug) || allThreadsDebug) printf("local cache rebuilt\n");
 
 		// find which boids are in range
 		
@@ -96,12 +99,12 @@ __global__ void cudaBoidUpdate(psudoBoid* globalBoidArray, int loopCount, const 
 
 		for (int i = 0; i < BOID_MAX; i++)
 		{
-			if (i == selfIndex)
-			{
+			//if (i == selfIndex)
+			//{
 				//skip
-			}
-			else
-			{
+			//}
+			//else
+			//{
 				psudoVector2 temp;
 				temp.x = localBoidArray[i].position.x - localBoidArray[selfIndex].position.x;
 				temp.y = localBoidArray[i].position.y - localBoidArray[selfIndex].position.y;
@@ -111,10 +114,10 @@ __global__ void cudaBoidUpdate(psudoBoid* globalBoidArray, int loopCount, const 
 					nearbyBoidIndexer[nearbyBoidIndexSize] = i;
 					nearbyBoidIndexSize++;
 				}
-			}
+			//}
 		}
 
-		//printf("sort list made\n");
+		if ((selfIndex ==0 && debug) || allThreadsDebug) printf("sort list made\n");
 
 		// alightment
 		psudoVector2 sumVelocity;
@@ -132,7 +135,7 @@ __global__ void cudaBoidUpdate(psudoBoid* globalBoidArray, int loopCount, const 
 
 		psudoVector2 newVelocity = sumVelocity;
 		
-		//printf("alignment found\n");
+		if ((selfIndex ==0 && debug) || allThreadsDebug) printf("alignment found\n");
 
 		// cohesion
 		psudoVector2 sumPosition;
@@ -149,7 +152,7 @@ __global__ void cudaBoidUpdate(psudoBoid* globalBoidArray, int loopCount, const 
 		sumPosition.x = sumPosition.x / nearbyBoidIndexSize;
 		sumPosition.y = sumPosition.y / nearbyBoidIndexSize;
 
-		//printf("cohesion done\n");
+		if ((selfIndex ==0 && debug) || allThreadsDebug) printf("cohesion done\n");
 		
 		// seperation
 		for (int i = 0; i < nearbyBoidIndexSize; i++) // another for loop that could be merged?
@@ -167,7 +170,7 @@ __global__ void cudaBoidUpdate(psudoBoid* globalBoidArray, int loopCount, const 
 			}
 		}
 
-		//printf("seperation done\n");
+		if ((selfIndex ==0 && debug) || allThreadsDebug) printf("seperation done\n");
 
 		// STUFF FROM CPU POST UPDATE METHOD
 
@@ -206,22 +209,23 @@ __global__ void cudaBoidUpdate(psudoBoid* globalBoidArray, int loopCount, const 
 	   }*/
 
 	   // enforec speed limit
+		if ((selfIndex ==0 && debug) || allThreadsDebug) printf("enforcing the speed limit\n");
 		float l = sqrt(newVelocity.x*newVelocity.x + newVelocity.y*newVelocity.y);
 		if (l > BOID_SPEED_MAX);
 		{
 			// normalise and then scale
-			newVelocity.x = (newVelocity.x / l)*BOID_SPEED_MAX;
+			newVelocity.x = (newVelocity.x / l)*BOID_SPEED_MAX; //NaN caused here?
 			newVelocity.y = (newVelocity.y / l)*BOID_SPEED_MAX;
 		}
 
-		//printf("obaying the speed limit\n");
+		if ((selfIndex ==0 && debug) || allThreadsDebug) printf("obaying the speed limit\n");
 
 		// update position with velocity
 		localBoidArray[selfIndex].currentVelocity = newVelocity;
 		localBoidArray[selfIndex].position.x += newVelocity.x;
 		localBoidArray[selfIndex].position.y += newVelocity.y;
 
-		//printf("updated local cache\n");
+		if ((selfIndex ==0 && debug) || allThreadsDebug) printf("updated local cache\n");
 
 		// screen wrap
 		if (localBoidArray[selfIndex].position.x < 0)
@@ -234,30 +238,32 @@ __global__ void cudaBoidUpdate(psudoBoid* globalBoidArray, int loopCount, const 
 		if (localBoidArray[selfIndex].position.y > SCREEN_HEIGHT)
 			localBoidArray[selfIndex].position.y -= SCREEN_HEIGHT;
 
-		//printf("staying within the world\n");
+		if ((selfIndex ==0 && debug) || allThreadsDebug) printf("staying within the world\n");
 
-		//printf("waiting for everyone\n");
+		if ((selfIndex ==0 && debug) || allThreadsDebug) printf("waiting for everyone\n");
 		__syncthreads();
 
 		// update shared data
 		sharedBoidArray[selfIndex] = localBoidArray[selfIndex];
 
-		//printf("updated shared info\n");
+		if ((selfIndex ==0 && debug) || allThreadsDebug) printf("updated shared info\n");
 
 		//TODO: cuda/opengl interop render
 
 		// wait for all threads (get ready for next round)
 
-		//printf("waiting for next loop\n");
+		if ((selfIndex ==0 && debug) || allThreadsDebug) printf("waiting for next loop\n");
 		__syncthreads();
 	}
 
 	free(nearbyBoidIndexer);
+	free(localBoidArray);
 
 	// put stuff back in global memory so that CPU can collect it if wanted
 	globalBoidArray[selfIndex] = sharedBoidArray[selfIndex];
+	__syncthreads();
 	if (selfIndex == 0) free(sharedBoidArray);
-	free(localBoidArray);
+	
 	
 }
 
@@ -285,10 +291,12 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	// set up cuda
 	cudaError err = cudaSetDevice(0);
+	cudaDeviceReset();
 	if (err != cudaSuccess)
 	{
 		cerr << "GraphicsTemplate::_tmain - failed to set device\n";
 		cout << "errored\n";
+		cudaDeviceReset();
 		return -1;
 	}
 	// make all boids
@@ -317,6 +325,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		cudaFree(deviceBoidArray);
 		free(boidArray);
 		cout << "errored\n";
+		cudaDeviceReset();
 		return -1;
 	}
 
@@ -327,6 +336,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		cudaFree(deviceBoidArray);
 		free(boidArray);
 		cout << "errored\n";
+		cudaDeviceReset();
 		return -1;
 	}
 
@@ -335,7 +345,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	// run kernel
 	//std::cout << "Simulating boids\n";
   high_resolution_clock::time_point t1 = high_resolution_clock::now();
-	cudaBoidUpdate << <numberOfBlocks, numberOfThreadsPerBlock >> >(deviceBoidArray, loopCount, BOID_MAX);
+	cudaBoidUpdate << <numberOfBlocks, numberOfThreadsPerBlock>> >(deviceBoidArray, loopCount, BOID_MAX);
 
 	
 
@@ -346,6 +356,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		cudaFree(deviceBoidArray);
 		free(boidArray);
 		cout << "errored\n";
+		cudaDeviceReset();
 		return -1;
 	}
 
@@ -361,6 +372,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		cudaFree(deviceBoidArray);
 		free(boidArray);
 		cout << "errored\n";
+		cudaDeviceReset();
 		return -1;
 	}
 
@@ -374,5 +386,6 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	free(boidArray);
 	std::cerr << "all ok\n";
+	cudaDeviceReset();
 	return 0;
 }

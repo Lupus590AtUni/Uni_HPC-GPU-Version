@@ -63,21 +63,21 @@ __global__ void cudaBoidUpdate(psudoBoid* globalBoidArray, int loopCount, const 
 	int selfIndex = (int)threadIdx.x; // slightly more readable and means less casting
 	if ((selfIndex == 0 && debug) || allThreadsDebug) printf("kernel launched\n");
 	
-   // every boid copies it own data into the shared memory
+  // create shared array for communicating between threads/boids
 	__shared__ psudoBoid* sharedBoidArray;
 	if(selfIndex == 0) sharedBoidArray = (psudoBoid*)malloc(BOID_MAX * sizeof(psudoBoid));
 	__syncthreads();
-	sharedBoidArray[selfIndex] = globalBoidArray[selfIndex];
+	sharedBoidArray[selfIndex] = globalBoidArray[selfIndex]; // every boid copies it own data into the shared memory
 
 	if ((selfIndex ==0 && debug) || allThreadsDebug) printf("init complete\n");
 
-	psudoBoid* localBoidArray = (psudoBoid*)malloc(BOID_MAX * sizeof(psudoBoid));
+	psudoBoid* localBoidArray = (psudoBoid*)malloc(BOID_MAX * sizeof(psudoBoid)); // each thread has its own cache of the shared array, this is likely the cause of 551 boid limit
 
 	int* nearbyBoidIndexer = (int*)malloc(BOID_MAX * sizeof(int));  //save memory while creating short list with a trick
 	for (int loop = 0; loop < loopCount; loop++)
 	{
 		if ((selfIndex ==0 && debug) || allThreadsDebug) printf("beginning loop %d\n", loop);
-		// rebuild cache
+		// rebuild localBoidArray cache
 		// starting at own boid, copy data into own memory
 
 		int i = selfIndex;
@@ -99,6 +99,7 @@ __global__ void cudaBoidUpdate(psudoBoid* globalBoidArray, int loopCount, const 
 
 		for (int i = 0; i < BOID_MAX; i++)
 		{
+      // CPU version had a bug here
 			//if (i == selfIndex)
 			//{
 				//skip
@@ -109,7 +110,7 @@ __global__ void cudaBoidUpdate(psudoBoid* globalBoidArray, int loopCount, const 
 				temp.x = localBoidArray[i].position.x - localBoidArray[selfIndex].position.x;
 				temp.y = localBoidArray[i].position.y - localBoidArray[selfIndex].position.y;
 				int tempLength = sqrt(temp.x*temp.x + temp.y*temp.y);
-				if (tempLength < BIOD_SIGHT_RANGE)
+				if (tempLength < BIOD_SIGHT_RANGE) // if the boid is close enough to be seen then add it to the nearby list
 				{
 					nearbyBoidIndexer[nearbyBoidIndexSize] = i;
 					nearbyBoidIndexSize++;
@@ -124,6 +125,7 @@ __global__ void cudaBoidUpdate(psudoBoid* globalBoidArray, int loopCount, const 
 		sumVelocity.x = 0;
 		sumVelocity.y = 0;
 
+    // nearbyBoidIndexer trick in action
 		for (int i = 0; i < nearbyBoidIndexSize; i++)
 		{
 			sumVelocity.x += localBoidArray[nearbyBoidIndexer[i]].currentVelocity.x;
@@ -151,6 +153,17 @@ __global__ void cudaBoidUpdate(psudoBoid* globalBoidArray, int loopCount, const 
 		// convert to average
 		sumPosition.x = sumPosition.x / nearbyBoidIndexSize;
 		sumPosition.y = sumPosition.y / nearbyBoidIndexSize;
+    
+    psudoVector2 temp;
+    temp.x = position.x - sumPosition.x;
+    temp.y = position.y - sumPosition.y;
+	
+    temp.x *= BOID_COHESION_WEIGHTING;
+    temp.y *= BOID_COHESION_WEIGHTING;
+
+    // modify velocity to head towards the average position
+    newVelocity.x += temp.x;
+    newVelocity.y += temp.y;
 
 		if ((selfIndex ==0 && debug) || allThreadsDebug) printf("cohesion done\n");
 		
@@ -175,7 +188,8 @@ __global__ void cudaBoidUpdate(psudoBoid* globalBoidArray, int loopCount, const 
 		// STUFF FROM CPU POST UPDATE METHOD
 
 	   // enforce rotation limit
-	   // commented out due to bug in NA_Vector::clockwiseAngle - it doesn't give a different value when you mesure from the other vector. Thiss means that the CPU version has this bug
+	   // commented out due to bug in NA_Vector::clockwiseAngle - it doesn't give a different value when you mesure from the other vector. Thiss means that the CPU version had this bug
+     // also porting this to cuda would have made ugly code
 	   /*float newVelocityCurrentVelocityClockwiseAngle; //this is going to get messy - missing my vector library now
 
 		 float newVelocityLenSq = newVelocity.x*newVelocity.x + newVelocity.y*newVelocity.y; // I could possibly do some #defines for readability
@@ -208,13 +222,13 @@ __global__ void cudaBoidUpdate(psudoBoid* globalBoidArray, int loopCount, const 
 		 }
 	   }*/
 
-	   // enforec speed limit
+	   // enforce speed limit
 		if ((selfIndex ==0 && debug) || allThreadsDebug) printf("enforcing the speed limit\n");
 		float l = sqrt(newVelocity.x*newVelocity.x + newVelocity.y*newVelocity.y);
 		if (l > BOID_SPEED_MAX);
 		{
 			// normalise and then scale
-			newVelocity.x = (newVelocity.x / l)*BOID_SPEED_MAX; //NaN caused here?
+			newVelocity.x = (newVelocity.x / l)*BOID_SPEED_MAX; // I occasionally had NaN in boid data, I suspect that is was caused here from when the boid filtered itself out of the nearbyBoidIndexer
 			newVelocity.y = (newVelocity.y / l)*BOID_SPEED_MAX;
 		}
 
@@ -256,6 +270,7 @@ __global__ void cudaBoidUpdate(psudoBoid* globalBoidArray, int loopCount, const 
 		__syncthreads();
 	}
 
+  // threads cleanup their local stuff
 	free(nearbyBoidIndexer);
 	free(localBoidArray);
 
@@ -282,12 +297,13 @@ int _tmain(int argc, _TCHAR* argv[])
 	}
 	else
 	{
+    // convert to ints, not sure what happens if can't
 		BOID_MAX = std::stoi(argv[1], NULL); //http://www.cplusplus.com/reference/string/stoi/
 		loopCount = std::stoi(argv[2], NULL);
 	}
 
 	const int numberOfBlocks = 1;
-	const int numberOfThreadsPerBlock = BOID_MAX;
+	const int numberOfThreadsPerBlock = BOID_MAX; // expect errors with over 1024 boids
 
 	// set up cuda
 	cudaError err = cudaSetDevice(0);
@@ -301,9 +317,10 @@ int _tmain(int argc, _TCHAR* argv[])
 	}
 	// make all boids
 	extern NA_MathsLib na_maths;
-	na_maths.seedDice(0);
+	na_maths.seedDice(0); // fixed seed matches CPU version
 	psudoBoid* boidArray = (psudoBoid*) malloc(BOID_MAX * sizeof(psudoBoid));
 	//psudoBoid boidArray[BOID_MAX];
+  //set initual values
 	for (int i = 0; i < BOID_MAX; i++)
 	{
 
@@ -345,7 +362,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	// run kernel
 	//std::cout << "Simulating boids\n";
   high_resolution_clock::time_point t1 = high_resolution_clock::now();
-	cudaBoidUpdate << <numberOfBlocks, numberOfThreadsPerBlock>> >(deviceBoidArray, loopCount, BOID_MAX);
+	cudaBoidUpdate << <numberOfBlocks, numberOfThreadsPerBlock>> >(deviceBoidArray, loopCount, BOID_MAX); // launch the GPU kernel
 
 	
 
@@ -376,6 +393,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		return -1;
 	}
 
+  // test did not error, calculate time taken and printout
 	duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
 
 	cout << time_span.count() << "\n";
@@ -385,7 +403,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	//cout << "all done\n";
 
 	free(boidArray);
-	std::cerr << "all ok\n";
+	std::cerr << "all ok\n"; // only here so that the error cvs file is easier to read
 	cudaDeviceReset();
 	return 0;
 }

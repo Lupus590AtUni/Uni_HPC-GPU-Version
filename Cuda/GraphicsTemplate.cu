@@ -155,8 +155,8 @@ __global__ void cudaBoidUpdate(psudoBoid* globalBoidArray, int loopCount, const 
 		sumPosition.y = sumPosition.y / nearbyBoidIndexSize;
     
     psudoVector2 temp;
-    temp.x = position.x - sumPosition.x;
-    temp.y = position.y - sumPosition.y;
+    temp.x = localBoidArray[selfIndex].position.x - sumPosition.x;
+    temp.y = localBoidArray[selfIndex].position.y - sumPosition.y;
 	
     temp.x *= BOID_COHESION_WEIGHTING;
     temp.y *= BOID_COHESION_WEIGHTING;
